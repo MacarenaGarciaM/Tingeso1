@@ -46,13 +46,11 @@ public class ToolService {
         }
 
         // Buscar si ya existe una herramienta con el mismo nombre y categoría
-        List<ToolEntity> existingToolOpt = toolRepository.findByNameAndCategory(tool.getName(), tool.getCategory());
-
         List<ToolEntity> existingTools = toolRepository.findByNameAndCategory(tool.getName(), tool.getCategory());
 
         ToolEntity savedTool;
         if (!existingTools.isEmpty()) {
-            // Tomar la primera coincidencia (o definir qué hacer si hay más)
+            // Si existe: sumamos la cantidad
             ToolEntity existingTool = existingTools.get(0);
             int newAmount = existingTool.getAmount() + tool.getAmount();
             existingTool.setAmount(newAmount);
@@ -61,6 +59,7 @@ public class ToolService {
             existingTool.setRepositionValue(tool.getRepositionValue());
             savedTool = toolRepository.save(existingTool);
         } else {
+            // Si no existe: crear nueva
             ToolEntity newTool = new ToolEntity(
                     null,
                     tool.getName(),
@@ -73,17 +72,13 @@ public class ToolService {
             savedTool = toolRepository.save(newTool);
         }
 
-        // Calcular stock acumulado de la categoría (no solo la herramienta)
-        int currentStock = kardexRepository.getCurrentStockByCategory(savedTool.getCategory());
-        int updatedStock = currentStock + tool.getAmount();
-
-        // Registrar movimiento en kardex
+        // Registrar movimiento en kardex (solo la cantidad ingresada, no el acumulado)
         KardexEntity kardex = new KardexEntity();
         kardex.setTool(savedTool);
         kardex.setRutUser("ADMIN"); // Usuario autenticado aquí
         kardex.setType("Ingreso");
         kardex.setMovementDate(LocalDate.now());
-        kardex.setStock(savedTool.getAmount());
+        kardex.setStock(tool.getAmount()); // SOLO la cantidad ingresada
         kardexRepository.save(kardex);
 
         return savedTool;
@@ -93,12 +88,102 @@ public class ToolService {
         ToolEntity tool = toolRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Tool not found"));
 
-        boolean stockChanged = false;
-
         if (newState != null) {
             if (!validState.contains(newState)) {
                 throw new IllegalArgumentException("Invalid state: " + newState);
             }
+
+            // Caso 1: Disponible -> Otro estado
+            if (tool.getInitialState().equals("Disponible") && !newState.equals("Disponible")) {
+                if (tool.getAmount() <= 0) {
+                    throw new IllegalArgumentException("No hay stock disponible para mover a otro estado.");
+                }
+
+                // Reducir en Disponible
+                tool.setAmount(tool.getAmount() - 1);
+                toolRepository.save(tool);
+
+                // Buscar si ya existe herramienta con mismo estado
+                List<ToolEntity> existingTools = toolRepository.findByNameAndCategory(tool.getName(), tool.getCategory());
+                Optional<ToolEntity> sameStateTool = existingTools.stream()
+                        .filter(t -> newState.equals(t.getInitialState()))
+                        .findFirst();
+
+                ToolEntity targetTool;
+                if (sameStateTool.isPresent()) {
+                    targetTool = sameStateTool.get();
+                    targetTool.setAmount(targetTool.getAmount() + 1);
+                } else {
+                    targetTool = new ToolEntity(
+                            null,
+                            tool.getName(),
+                            tool.getCategory(),
+                            newState,
+                            tool.getRepositionValue(),
+                            false,
+                            1
+                    );
+                }
+                ToolEntity savedTargetTool = toolRepository.save(targetTool);
+
+                // Kardex
+                KardexEntity kardex = new KardexEntity();
+                kardex.setTool(savedTargetTool);
+                kardex.setRutUser("ADMIN");
+                kardex.setType("Cambio de estado: " + newState);
+                kardex.setMovementDate(LocalDate.now());
+                kardex.setStock(savedTargetTool.getAmount());
+                kardexRepository.save(kardex);
+
+                return savedTargetTool;
+            }
+
+            // Caso 2: Otro estado -> Disponible
+            if (!tool.getInitialState().equals("Disponible") && newState.equals("Disponible")) {
+                if (tool.getAmount() <= 0) {
+                    throw new IllegalArgumentException("No hay stock en este estado para devolver a Disponible.");
+                }
+
+                // Reducir del estado actual
+                tool.setAmount(tool.getAmount() - 1);
+                toolRepository.save(tool);
+
+                // Buscar la herramienta Disponible
+                List<ToolEntity> existingTools = toolRepository.findByNameAndCategory(tool.getName(), tool.getCategory());
+                Optional<ToolEntity> disponibleTool = existingTools.stream()
+                        .filter(t -> "Disponible".equals(t.getInitialState()))
+                        .findFirst();
+
+                ToolEntity targetTool;
+                if (disponibleTool.isPresent()) {
+                    targetTool = disponibleTool.get();
+                    targetTool.setAmount(targetTool.getAmount() + 1);
+                } else {
+                    targetTool = new ToolEntity(
+                            null,
+                            tool.getName(),
+                            tool.getCategory(),
+                            "Disponible",
+                            tool.getRepositionValue(),
+                            true,
+                            1
+                    );
+                }
+                ToolEntity savedTargetTool = toolRepository.save(targetTool);
+
+                // Kardex
+                KardexEntity kardex = new KardexEntity();
+                kardex.setTool(savedTargetTool);
+                kardex.setRutUser("ADMIN");
+                kardex.setType("Cambio de estado: Disponible");
+                kardex.setMovementDate(LocalDate.now());
+                kardex.setStock(savedTargetTool.getAmount());
+                kardexRepository.save(kardex);
+
+                return savedTargetTool;
+            }
+
+            // Caso 3: Actualización normal (ej: Prestada -> Reparación)
             tool.setInitialState(newState);
             tool.setAvailable(newState.equals("Disponible"));
         }
@@ -107,26 +192,12 @@ public class ToolService {
             if (newAmount < 0) {
                 throw new IllegalArgumentException("Amount cannot be negative.");
             }
-            if (!newAmount.equals(tool.getAmount())) {
-                stockChanged = true;
-            }
             tool.setAmount(newAmount);
         }
 
-        ToolEntity updatedTool = toolRepository.save(tool);
-
-        if (stockChanged) {
-            // recalcular stock acumulado de la categoría
-            int currentStock = kardexRepository.getCurrentStockByCategory(updatedTool.getCategory());
-            KardexEntity kardex = new KardexEntity();
-            kardex.setTool(updatedTool);
-            kardex.setRutUser("ADMIN");
-            kardex.setType("Actualización Stock");
-            kardex.setMovementDate(LocalDate.now());
-            kardex.setStock(currentStock);
-            kardexRepository.save(kardex);
-        }
-
-        return updatedTool;
+        return toolRepository.save(tool);
     }
+
+
+
 }
