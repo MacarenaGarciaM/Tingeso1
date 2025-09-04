@@ -7,20 +7,23 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 
-
 @Entity
 @Table(name = "kardex")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class kardexEntity {
+public class KardexEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(unique = true, nullable = false)
     private Long id;
+
+    @ManyToOne
+    @JoinColumn(name = "tool_id", nullable = false)
+    private ToolEntity tool;
     private String rutUser;
     private String type;
-    private LocalDate returnDate;
+    private LocalDate movementDate;
     private int stock;
-
 }
