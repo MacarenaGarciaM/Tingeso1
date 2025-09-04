@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ToolService {
@@ -20,13 +21,11 @@ public class ToolService {
     @Autowired
     private KardexRepository kardexRepository;
 
-
-
     private static final List<String> validState =
             Arrays.asList("Disponible", "Prestada", "En reparación", "Dada de baja");
 
     public ToolEntity saveTool(ToolEntity tool) {
-        // Validaciones
+        // Validaciones básicas
         if (tool.getName() == null || tool.getName().trim().isEmpty()) {
             throw new IllegalArgumentException("Tool name is required.");
         }
@@ -36,6 +35,9 @@ public class ToolService {
         if (tool.getRepositionValue() <= 0) {
             throw new IllegalArgumentException("Reposition value must be greater than 0.");
         }
+        if (tool.getAmount() <= 0) {
+            throw new IllegalArgumentException("Amount must be greater than 0.");
+        }
         if (tool.getInitialState() == null || tool.getInitialState().trim().isEmpty()) {
             throw new IllegalArgumentException("Initial state is required.");
         }
@@ -43,22 +45,42 @@ public class ToolService {
             throw new IllegalArgumentException("Initial state is not valid.");
         }
 
-        // create the new tool
-        ToolEntity newTool = new ToolEntity(
-                null,
-                tool.getName(),
-                tool.getCategory(),
-                tool.getInitialState(),
-                tool.getRepositionValue(),
-                tool.isAvailable(),
-                tool.getAmount()
-        );
-        ToolEntity savedTool = toolRepository.save(newTool);
+        // Buscar si ya existe una herramienta con el mismo nombre y categoría
+        List<ToolEntity> existingToolOpt = toolRepository.findByNameAndCategory(tool.getName(), tool.getCategory());
 
-        // Register tool in kardex
+        List<ToolEntity> existingTools = toolRepository.findByNameAndCategory(tool.getName(), tool.getCategory());
+
+        ToolEntity savedTool;
+        if (!existingTools.isEmpty()) {
+            // Tomar la primera coincidencia (o definir qué hacer si hay más)
+            ToolEntity existingTool = existingTools.get(0);
+            int newAmount = existingTool.getAmount() + tool.getAmount();
+            existingTool.setAmount(newAmount);
+            existingTool.setInitialState(tool.getInitialState());
+            existingTool.setAvailable(tool.isAvailable());
+            existingTool.setRepositionValue(tool.getRepositionValue());
+            savedTool = toolRepository.save(existingTool);
+        } else {
+            ToolEntity newTool = new ToolEntity(
+                    null,
+                    tool.getName(),
+                    tool.getCategory(),
+                    tool.getInitialState(),
+                    tool.getRepositionValue(),
+                    tool.isAvailable(),
+                    tool.getAmount()
+            );
+            savedTool = toolRepository.save(newTool);
+        }
+
+        // Calcular stock acumulado de la categoría (no solo la herramienta)
+        int currentStock = kardexRepository.getCurrentStockByCategory(savedTool.getCategory());
+        int updatedStock = currentStock + tool.getAmount();
+
+        // Registrar movimiento en kardex
         KardexEntity kardex = new KardexEntity();
         kardex.setTool(savedTool);
-        kardex.setRutUser("ADMIN"); // Aquí debería ir el usuario autenticado
+        kardex.setRutUser("ADMIN"); // Usuario autenticado aquí
         kardex.setType("Ingreso");
         kardex.setMovementDate(LocalDate.now());
         kardex.setStock(savedTool.getAmount());
@@ -93,14 +115,15 @@ public class ToolService {
 
         ToolEntity updatedTool = toolRepository.save(tool);
 
-        //Register movement in kardex IF the stock was changed
         if (stockChanged) {
+            // recalcular stock acumulado de la categoría
+            int currentStock = kardexRepository.getCurrentStockByCategory(updatedTool.getCategory());
             KardexEntity kardex = new KardexEntity();
             kardex.setTool(updatedTool);
-            kardex.setRutUser("ADMIN"); // Aquí debería ir el usuario autenticado
+            kardex.setRutUser("ADMIN");
             kardex.setType("Actualización Stock");
             kardex.setMovementDate(LocalDate.now());
-            kardex.setStock(updatedTool.getAmount());
+            kardex.setStock(currentStock);
             kardexRepository.save(kardex);
         }
 
