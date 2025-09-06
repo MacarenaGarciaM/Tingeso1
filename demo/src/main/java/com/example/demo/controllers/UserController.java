@@ -62,36 +62,19 @@ public class UserController {
     }
 
     /**
-     * Actualizar datos de usuario (nombre, email, teléfono, etc.)
-
-     @PutMapping("/{id}")
-     public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody UserEntity updatedUser) {
-     try {
-     UserEntity user = userService.updateUser(id, updatedUser);
-     return ResponseEntity.ok(user);
-     } catch (IllegalArgumentException e) {
-     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-     }
-     }*/
-
-    /**
-     @PatchMapping("/{id}/status")
-     public ResponseEntity<?> toggleUserStatus(@PathVariable Long id) {
-     try {
-     UserEntity user = userService.toggleUserStatus(id);
-     return ResponseEntity.ok(user);
-     } catch (IllegalArgumentException e) {
-     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-     }
-     } */
-
-    /**
-     @DeleteMapping("/{id}")
-     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
-     boolean deleted = userService.deleteUser(id);
-     if (!deleted) {
-     return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
-     }
-     return ResponseEntity.ok("User deleted successfully");
-     }*/
+     * Actualizar estado activo de un usuario
+     */
+    @PatchMapping("/{id}/active")
+    public ResponseEntity<?> updateUserActiveStatus(@PathVariable Long id, @RequestParam boolean active) {
+        UserEntity user = userService.getUserById(id);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
+        try {
+            UserEntity updatedUser = userService.updateActive(user, active);
+            return ResponseEntity.ok(updatedUser);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error updating user status");
+        }
+    }
 }

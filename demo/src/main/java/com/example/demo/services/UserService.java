@@ -41,16 +41,20 @@ public class UserService {
         return UserRepository.save(newUser);
     }
 
+    public UserEntity updateActive(UserEntity user, boolean active) {
+        user.setActive(active); // Usar el parámetro recibido
+        return UserRepository.save(user);
+    }
     public List<UserEntity> getAllUsers() {
-        return List.of();
+        return UserRepository.findAll(); // Debe usar el método del repositorio
     }
 
     public UserEntity getUserById(Long id) {
-        return null;
+        return UserRepository.findById(id).orElse(null);
     }
 
     public UserEntity getUserByRut(String rut) {
-        return null;
+        return UserRepository.findByRut(rut);
     }
 
 }
