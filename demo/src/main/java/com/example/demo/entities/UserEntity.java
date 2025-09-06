@@ -23,7 +23,7 @@ public class UserEntity {
     private String rut;
     private int phone;
     private boolean rol;
-    private String status;
+    private boolean status;
     private int amountOfLoans;
 
 }
