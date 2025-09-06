@@ -2,6 +2,7 @@ package com.example.demo.services;
 
 import com.example.demo.entities.KardexEntity;
 import com.example.demo.entities.ToolEntity;
+import com.example.demo.entities.UserEntity;
 import com.example.demo.repositories.KardexRepository;
 import com.example.demo.repositories.ToolRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +25,7 @@ public class ToolService {
     private static final List<String> validState =
             Arrays.asList("Disponible", "Prestada", "En reparación", "Dada de baja");
 
-    public ToolEntity saveTool(ToolEntity tool) {
+    public ToolEntity saveTool(ToolEntity tool, UserEntity rutUser) {
         // Validaciones básicas
         if (tool.getName() == null || tool.getName().trim().isEmpty()) {
             throw new IllegalArgumentException("Tool name is required.");
@@ -75,7 +76,7 @@ public class ToolService {
         // Registrar movimiento en kardex (solo la cantidad ingresada, no el acumulado)
         KardexEntity kardex = new KardexEntity();
         kardex.setTool(savedTool);
-        kardex.setRutUser("ADMIN"); // Usuario autenticado aquí
+        kardex.setRutUser(rutUser.getRut()); // Usuario autenticado aquí
         kardex.setType("Ingreso");
         kardex.setMovementDate(LocalDate.now());
         kardex.setStock(tool.getAmount()); // SOLO la cantidad ingresada
@@ -84,7 +85,7 @@ public class ToolService {
         return savedTool;
     }
 
-    public ToolEntity updateTool(Long id, String newState, Integer newAmount) {
+    public ToolEntity updateTool(Long id, String newState, Integer newAmount, UserEntity rutUser) {
         ToolEntity tool = toolRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Tool not found"));
 
@@ -129,7 +130,7 @@ public class ToolService {
                 // Kardex
                 KardexEntity kardex = new KardexEntity();
                 kardex.setTool(savedTargetTool);
-                kardex.setRutUser("ADMIN");
+                kardex.setRutUser(rutUser.getRut());
                 kardex.setType("Cambio de estado: " + newState);
                 kardex.setMovementDate(LocalDate.now());
                 kardex.setStock(savedTargetTool.getAmount());
@@ -174,7 +175,7 @@ public class ToolService {
                 // Kardex
                 KardexEntity kardex = new KardexEntity();
                 kardex.setTool(savedTargetTool);
-                kardex.setRutUser("ADMIN");
+                kardex.setRutUser(rutUser.getRut());
                 kardex.setType("Cambio de estado: Disponible");
                 kardex.setMovementDate(LocalDate.now());
                 kardex.setStock(savedTargetTool.getAmount());
@@ -197,7 +198,6 @@ public class ToolService {
 
         return toolRepository.save(tool);
     }
-
 
 
 }

@@ -64,34 +64,34 @@ public class UserController {
     /**
      * Actualizar datos de usuario (nombre, email, teléfono, etc.)
 
-    @PutMapping("/{id}")
-    public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody UserEntity updatedUser) {
-        try {
-            UserEntity user = userService.updateUser(id, updatedUser);
-            return ResponseEntity.ok(user);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        }
-    }*/
+     @PutMapping("/{id}")
+     public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody UserEntity updatedUser) {
+     try {
+     UserEntity user = userService.updateUser(id, updatedUser);
+     return ResponseEntity.ok(user);
+     } catch (IllegalArgumentException e) {
+     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+     }
+     }*/
 
     /**
-    @PatchMapping("/{id}/status")
-    public ResponseEntity<?> toggleUserStatus(@PathVariable Long id) {
-        try {
-            UserEntity user = userService.toggleUserStatus(id);
-            return ResponseEntity.ok(user);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        }
-    } */
+     @PatchMapping("/{id}/status")
+     public ResponseEntity<?> toggleUserStatus(@PathVariable Long id) {
+     try {
+     UserEntity user = userService.toggleUserStatus(id);
+     return ResponseEntity.ok(user);
+     } catch (IllegalArgumentException e) {
+     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+     }
+     } */
 
     /**
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
-        boolean deleted = userService.deleteUser(id);
-        if (!deleted) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
-        }
-        return ResponseEntity.ok("User deleted successfully");
-    }*/
+     @DeleteMapping("/{id}")
+     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
+     boolean deleted = userService.deleteUser(id);
+     if (!deleted) {
+     return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+     }
+     return ResponseEntity.ok("User deleted successfully");
+     }*/
 }

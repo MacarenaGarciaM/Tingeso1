@@ -33,7 +33,7 @@ public class UserService {
                 user.getPassword(),
                 user.getRut(),
                 user.getPhone(),
-                user.isRol(),                        // rol (true=admin, false=empleado)
+                user.isAdmin(),                        // rol (true=admin, false=empleado)
                 true,                                // status inicial = Activo
                 0                                    // cantidad de préstamos inicial = 0
         );
@@ -52,6 +52,5 @@ public class UserService {
     public UserEntity getUserByRut(String rut) {
         return null;
     }
-
 
 }

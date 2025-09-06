@@ -1,6 +1,7 @@
 package com.example.demo.controllers;
 
 import com.example.demo.entities.ToolEntity;
+import com.example.demo.entities.UserEntity;
 import com.example.demo.services.ToolService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -16,9 +17,9 @@ public class ToolController {
 
     // Crear nueva herramienta
     @PostMapping
-    public ResponseEntity<?> createTool(@RequestBody ToolEntity tool) {
+    public ResponseEntity<?> createTool(@RequestBody ToolRequest request) {
         try {
-            ToolEntity savedTool = toolService.saveTool(tool);
+            ToolEntity savedTool = toolService.saveTool(request.getTool(), request.getUser());
             return ResponseEntity.ok(savedTool);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -29,12 +30,27 @@ public class ToolController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateTool(@PathVariable Long id,
                                         @RequestParam(required = false) String state,
-                                        @RequestParam(required = false) Integer amount) {
+                                        @RequestParam(required = false) Integer amount,
+                                        @RequestBody UserEntity user) {
         try {
-            ToolEntity updatedTool = toolService.updateTool(id, state, amount);
+            ToolEntity updatedTool = toolService.updateTool(id, state, amount, user);
             return ResponseEntity.ok(updatedTool);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // Clase auxiliar para el POST
+    public static class ToolRequest {
+        private ToolEntity tool;
+        private UserEntity user;
+
+        public ToolEntity getTool() {
+            return tool;
+        }
+
+        public UserEntity getUser() {
+            return user;
         }
     }
 }

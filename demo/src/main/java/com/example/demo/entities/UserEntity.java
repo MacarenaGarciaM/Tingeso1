@@ -22,8 +22,9 @@ public class UserEntity {
     private String password;
     private String rut;
     private int phone;
-    private boolean rol;
-    private boolean status;
+    private boolean admin;
+    private boolean active;
     private int amountOfLoans;
+
 
 }
