@@ -15,6 +15,7 @@ public interface ToolRepository extends JpaRepository<ToolEntity, Long> {
     List<ToolEntity> findByRepositionValue(int repositionValue);
     List<ToolEntity> findByAvailable(boolean available);
     List<ToolEntity> findByAmount(int amount);
+    List<ToolEntity> findByName(String name);
 
 
 }
