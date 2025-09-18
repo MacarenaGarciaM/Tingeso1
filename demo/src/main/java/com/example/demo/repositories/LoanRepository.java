@@ -9,19 +9,6 @@ import java.util.List;
 
 public interface LoanRepository extends JpaRepository<LoanEntity, Long> {
 
-    // Búsquedas generales
-    List<LoanEntity> findByReturnDate(LocalDate returnDate);
-
-    // Préstamos del usuario
-    List<LoanEntity> findByRutUser(String rutUser);
-
-    // Activos del usuario (lateReturnDate = null)
-    List<LoanEntity> findByRutUserAndLateReturnDateIsNull(String rutUser);
-
-    // Igual que el anterior pero cargando los items en una sola query
-    @EntityGraph(attributePaths = "items")
-    List<LoanEntity> findByRutUserAndLateReturnDateIsNullOrderByReservationDateDesc(String rutUser);
-
     // Límite de 5 préstamos activos por usuario
     long countByRutUserAndLateReturnDateIsNull(String rutUser);
 

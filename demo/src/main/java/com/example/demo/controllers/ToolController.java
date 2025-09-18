@@ -3,6 +3,7 @@ package com.example.demo.controllers;
 import com.example.demo.entities.ToolEntity;
 import com.example.demo.entities.UserEntity;
 import com.example.demo.services.ToolService;
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -40,17 +41,11 @@ public class ToolController {
         }
     }
 
-    // Clase auxiliar para el POST
+
+    @Getter
     public static class ToolRequest {
         private ToolEntity tool;
         private UserEntity user;
 
-        public ToolEntity getTool() {
-            return tool;
-        }
-
-        public UserEntity getUser() {
-            return user;
-        }
     }
 }
