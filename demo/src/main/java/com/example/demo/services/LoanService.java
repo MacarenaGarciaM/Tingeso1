@@ -100,7 +100,6 @@ public class LoanService {
             LoanItemEntity line = new LoanItemEntity();
             line.setTool(tool);
             line.setToolNameSnapshot(tool.getName());
-            line.setQuantity(qty);
 
             loan.addItem(line);
         }

@@ -45,6 +45,7 @@ public class UserService {
         user.setActive(active); // Usar el parámetro recibido
         return UserRepository.save(user);
     }
+
     public List<UserEntity> getAllUsers() {
         return UserRepository.findAll(); // Debe usar el método del repositorio
     }
@@ -56,5 +57,6 @@ public class UserService {
     public UserEntity getUserByRut(String rut) {
         return UserRepository.findByRut(rut);
     }
+
 
 }

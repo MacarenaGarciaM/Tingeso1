@@ -32,7 +32,4 @@ public class LoanItemEntity {
     // Snapshot del nombre (opcional pero útil si el nombre cambia)
     private String toolNameSnapshot;
 
-    // Si tu regla es "no más de una unidad de la misma herramienta a la vez",
-    // deja quantity = 1 siempre. Si más adelante permites >1, ajusta validaciones.
-    private Integer quantity = 1;
 }

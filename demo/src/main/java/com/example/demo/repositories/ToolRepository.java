@@ -10,6 +10,7 @@ import java.util.List;
 @Repository
 public interface ToolRepository extends JpaRepository<ToolEntity, Long> {
     List<ToolEntity> findByNameAndCategory(String name, String category);
+    List<ToolEntity> findByName(String name);
 
 
 
