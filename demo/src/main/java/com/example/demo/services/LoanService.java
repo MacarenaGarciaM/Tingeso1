@@ -42,12 +42,12 @@ public class LoanService {
         UserEntity customer = userRepository.findByRut(rutUser);
         if (customer == null) throw new IllegalArgumentException("User (rut) not found: " + rutUser);
 
-        // only 5 loans
+        // Máximo 5 préstamos activos
         long activeCount = loanRepository.countByRutUserAndLateReturnDateIsNull(rutUser);
         if (activeCount >= 5)
             throw new IllegalArgumentException("User already has 5 active loans.");
 
-
+        // Cabecera
         LoanEntity loan = new LoanEntity();
         loan.setRutUser(customer.getRut());
         loan.setReservationDate(reservationDate);
@@ -57,7 +57,7 @@ public class LoanService {
         loan.setLateFine(0);
         loan.setDamagePenalty(0);
 
-        // kardex movement
+        // Para kardex: usar el rut del cliente
         UserEntity kardexUser = new UserEntity();
         kardexUser.setRut(customer.getRut());
 
@@ -74,40 +74,43 @@ public class LoanService {
             int qty = (it.quantity == null) ? 1 : it.quantity;
             if (qty <= 0) throw new IllegalArgumentException("quantity must be >= 1");
 
-            ToolEntity tool = toolRepository.findById(it.toolId)
+            ToolEntity disponibleTool = toolRepository.findById(it.toolId)
                     .orElseThrow(() -> new IllegalArgumentException("Tool not found (id=" + it.toolId + ")"));
 
-            // aviable and stock
-            if (!"Disponible".equalsIgnoreCase(tool.getInitialState()))
+            // Debe estar Disponible y con stock
+            if (!"Disponible".equalsIgnoreCase(disponibleTool.getInitialState()))
                 throw new IllegalArgumentException("Tool id=" + it.toolId + " is not 'Disponible'.");
-            if (tool.getAmount() < qty)
+            if (disponibleTool.getAmount() < qty)
                 throw new IllegalArgumentException("Not enough stock for tool id=" + it.toolId +
-                        ". Available: " + tool.getAmount());
+                        ". Available: " + disponibleTool.getAmount());
 
-            //only one tool per client
+            // Solo una unidad de la misma herramienta por cliente
             if (qty != 1) throw new IllegalArgumentException("Only one unit per tool is allowed.");
             boolean alreadyActive = loanRepository
                     .existsByRutUserAndLateReturnDateIsNullAndItems_Tool_Id(rutUser, it.toolId);
             if (alreadyActive)
                 throw new IllegalArgumentException("User already has this tool in an active loan: " + it.toolId);
 
-            // Reservar stock / kardex
-            for (int i = 0; i < qty; i++) {
-                toolService.updateTool(it.toolId, "Prestada", null, kardexUser);
-            }
+            // Mover de Disponible -> Prestada y OBTENER el registro/bucket en estado Prestada
+            // ¡Este es el ID que guardaremos en loan_item!
+            ToolEntity prestadaTool = toolService.updateTool(it.toolId, "Prestada", null, kardexUser);
 
-
+            // Crear línea apuntando a la herramienta en estado "Prestada"
             LoanItemEntity line = new LoanItemEntity();
-            line.setTool(tool);
-            line.setToolNameSnapshot(tool.getName());
+            line.setTool(prestadaTool);                        // <- guarda el ID real de la herramienta "Prestada"
+            line.setToolNameSnapshot(prestadaTool.getName());
+            // line.setQuantity(1); // si tu LoanItemEntity lleva quantity, déjalo en 1
 
             loan.addItem(line);
         }
 
-        // amountOfTools
-        return loanRepository.save(loan);
+        LoanEntity saved = loanRepository.save(loan);
+        customer.setAmountOfLoans(customer.getAmountOfLoans() + 1);
+        userRepository.save(customer);
+
+        return saved;
     }
-    
+
     @Transactional
     public LoanEntity returnLoan(
             Long loanId,
@@ -124,11 +127,11 @@ public class LoanService {
         if (loan.getLateReturnDate() != null)
             throw new IllegalArgumentException("Loan is already returned (closed).");
 
-        // Asegurar que los sets no sean null
+        // Normalizar sets
         damagedToolIds = (damagedToolIds == null) ? Collections.emptySet() : damagedToolIds;
         irreparableToolIds = (irreparableToolIds == null) ? Collections.emptySet() : irreparableToolIds;
 
-        // No pueden superponerse
+        // No se pueden superponer
         Set<Long> inter = new HashSet<>(damagedToolIds);
         inter.retainAll(irreparableToolIds);
         if (!inter.isEmpty())
@@ -149,28 +152,29 @@ public class LoanService {
             throw new IllegalArgumentException("Irreparable IDs not in this loan: " + unknown);
         }
 
-        // Para kardex: usamos el rut del cliente
+        // Para kardex
         UserEntity kardexUser = new UserEntity();
         kardexUser.setRut(loan.getRutUser());
 
         int damagePenalty = 0;
 
         for (LoanItemEntity line : loan.getItems()) {
+            // MUY IMPORTANTE: este id es el de la herramienta en estado "Prestada"
+            Long prestadaId = line.getTool().getId();
             ToolEntity tool = line.getTool();
-            Long id = tool.getId();
 
-            if (irreparableToolIds.contains(id)) {
+            if (irreparableToolIds.contains(prestadaId)) {
                 // Baja definitiva + reposición
-                Integer replacement = tool.getRepositionValue(); // ajusta el getter si tu entidad usa otro nombre
+                Integer replacement = tool.getRepositionValue(); // ajusta si tu getter tiene otro nombre
                 if (replacement == null) replacement = 0;
                 damagePenalty += replacement;
-                toolService.updateTool(id, "Dada de baja", null, kardexUser);
-            } else if (damagedToolIds.contains(id)) {
+                toolService.updateTool(prestadaId, "Dada de baja", null, kardexUser);
+            } else if (damagedToolIds.contains(prestadaId)) {
                 // En reparación
-                toolService.updateTool(id, "En reparación", null, kardexUser);
+                toolService.updateTool(prestadaId, "En reparación", null, kardexUser);
             } else {
-                // OK → Disponible
-                toolService.updateTool(id, "Disponible", null, kardexUser);
+                // OK → Disponible (regresa desde "Prestada")
+                toolService.updateTool(prestadaId, "Disponible", null, kardexUser);
             }
         }
 
@@ -183,11 +187,18 @@ public class LoanService {
         loan.setLateFine(lateFine);
         loan.setDamagePenalty(damagePenalty);
 
-        return loanRepository.save(loan);
+        LoanEntity saved = loanRepository.save(loan);
+        UserEntity customer = userRepository.findByRut(loan.getRutUser());
+        if (customer != null) {
+            int current = customer.getAmountOfLoans();
+            customer.setAmountOfLoans(Math.max(0, current - 1));
+            userRepository.save(customer);
+        }
+
+        return saved;
     }
 
-
-
+    // ====== Tipo simple para el body de creación (sin DTOs externos) ======
     public static class Item {
         public Long toolId;
         public Integer quantity;
