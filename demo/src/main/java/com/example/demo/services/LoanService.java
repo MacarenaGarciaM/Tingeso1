@@ -25,6 +25,8 @@ public class LoanService {
     private final UserRepository userRepository;
     private final ToolService toolService;
 
+    private static final int priceRent = 2500;
+
     @Transactional
     public LoanEntity createLoan(
             String rutUser,
@@ -56,6 +58,9 @@ public class LoanService {
         loan.setTotal(0);
         loan.setLateFine(0);
         loan.setDamagePenalty(0);
+
+        int total = calculateLoanTotal(reservationDate, returnDate);
+        loan.setTotal(total);
 
         // Para kardex: usar el rut del cliente
         UserEntity kardexUser = new UserEntity();
@@ -198,7 +203,15 @@ public class LoanService {
         return saved;
     }
 
-    // ====== Tipo simple para el body de creación (sin DTOs externos) ======
+    private int calculateLoanTotal(LocalDate reservationDate, LocalDate returnDate) {
+        long days = ChronoUnit.DAYS.between(reservationDate, returnDate);
+        if (days < 1) {
+            days = 1; // mínimo 1 día
+        }
+        return (int) (days * priceRent);
+    }
+
+
     public static class Item {
         public Long toolId;
         public Integer quantity;
