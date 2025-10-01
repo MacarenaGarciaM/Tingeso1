@@ -1,5 +1,7 @@
+// src/main/java/com/example/demo/entities/LoanEntity.java
 package com.example.demo.entities;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -18,7 +20,6 @@ public class LoanEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(unique = true, nullable = false)
     private Long id;
 
     // Cliente
@@ -26,22 +27,29 @@ public class LoanEntity {
 
     // Fechas
     private LocalDate reservationDate;   // fecha de entrega
-    private LocalDate returnDate;        // fecha pactada de devolución
-    private LocalDate lateReturnDate;    // fecha real de devolución (null = activo)
+    private LocalDate returnDate;        // fecha pactada devolución
+    private LocalDate lateReturnDate;    // fecha real devolución (null=activo)
 
-    // Totales / multas
-    private int total;           // cuánto debe pagar
-    private int lateFine;        // multa por atraso
-    private int damagePenalty;   // penalización por daños
+    // Monto base arriendo (se calcula al crear)
+    private int total = 0;
+
+    // Multas/penalizaciones
+    private int lateFine = 0;            // multa por atraso
+    private int damagePenalty = 0;       // penalización por daños
+
+    // NUEVO: estado de pago de multas
+    private boolean lateFinePaid = false;
+    private boolean damagePenaltyPaid = false;
 
     // Cantidad de TIPOS de herramientas en el préstamo (tamaño de items)
     private Integer amountOfTools = 0;
 
-    // Ítems (líneas) del préstamo
+    // Ítems del préstamo
     @OneToMany(mappedBy = "loan", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     private List<LoanItemEntity> items = new ArrayList<>();
 
-    // Helper para mantener amountOfTools en sincronía
+    // Helpers
     public void addItem(LoanItemEntity item) {
         items.add(item);
         item.setLoan(this);
