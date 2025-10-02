@@ -5,6 +5,7 @@ import com.example.demo.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,6 +20,7 @@ public class UserController {
     /**
      * Crear un nuevo usuario
      */
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @PostMapping
     public ResponseEntity<?> createUser(@RequestBody UserEntity user) {
         try {
@@ -32,6 +34,7 @@ public class UserController {
     /**
      * Obtener todos los usuarios
      */
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @GetMapping
     public ResponseEntity<List<UserEntity>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
@@ -40,6 +43,7 @@ public class UserController {
     /**
      * Obtener usuario por ID
      */
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<?> getUserById(@PathVariable Long id) {
         UserEntity user = userService.getUserById(id);
@@ -52,6 +56,7 @@ public class UserController {
     /**
      * Obtener usuario por RUT
      */
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @GetMapping("/rut/{rut}")
     public ResponseEntity<?> getUserByRut(@PathVariable String rut) {
         UserEntity user = userService.getUserByRut(rut);
@@ -64,6 +69,7 @@ public class UserController {
     /**
      * Actualizar estado activo de un usuario
      */
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @PatchMapping("/{id}/active")
     public ResponseEntity<?> updateUserActiveStatus(@PathVariable Long id, @RequestParam boolean active) {
         UserEntity user = userService.getUserById(id);

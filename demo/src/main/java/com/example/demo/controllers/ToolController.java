@@ -6,6 +6,7 @@ import com.example.demo.services.ToolService;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -17,6 +18,7 @@ public class ToolController {
     private ToolService toolService;
 
     // Crear nueva herramienta
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @PostMapping
     public ResponseEntity<?> createTool(@RequestBody ToolRequest request) {
         try {
@@ -28,6 +30,7 @@ public class ToolController {
     }
 
     // Actualizar herramienta existente
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<?> updateTool(@PathVariable Long id,
                                         @RequestParam(required = false) String state,

@@ -6,6 +6,7 @@ import com.example.demo.services.LoanService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import com.example.demo.repositories.LoanItemRepository;
 import org.springframework.data.domain.PageRequest;
@@ -22,8 +23,10 @@ public class LoanController {
 
     @Autowired
     private LoanService loanService;
+    @Autowired
+    private LoanItemRepository loanItemRepository;
 
-    // Crear préstamo (body = array de items)
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @PostMapping
     public ResponseEntity<?> createLoan(
             @RequestParam String rutUser,
@@ -39,7 +42,7 @@ public class LoanController {
         }
     }
 
-    // Devolución (body con actualReturnDate, finePerDay y listas damaged/irreparable)
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @PostMapping("/{loanId}/return")
     public ResponseEntity<?> returnLoan(
             @PathVariable Long loanId,
@@ -71,6 +74,7 @@ public class LoanController {
     }
 
     // Pagar multas (para que el usuario pueda volver a activo)
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @PostMapping("/{loanId}/pay-fines")
     public ResponseEntity<?> payFines(
             @PathVariable Long loanId,
@@ -121,14 +125,7 @@ public class LoanController {
         return out;
     }
 
-    @Autowired
-    private LoanItemRepository loanItemRepository;
-
-    /**
-     * Ranking simple de herramientas más prestadas.
-     * Ej: GET /loan/top?limit=5&start=2025-09-01&end=2025-09-30
-     * Todos los parámetros son opcionales.
-     */
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @GetMapping("/top")
     public ResponseEntity<?> topTools(
             @RequestParam(required = false) Integer limit,
