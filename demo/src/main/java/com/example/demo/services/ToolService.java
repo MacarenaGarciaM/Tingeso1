@@ -5,13 +5,13 @@ import com.example.demo.entities.ToolEntity;
 import com.example.demo.entities.UserEntity;
 import com.example.demo.repositories.KardexRepository;
 import com.example.demo.repositories.ToolRepository;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class ToolService {
@@ -197,6 +197,40 @@ public class ToolService {
         }
 
         return toolRepository.save(tool);
+    }
+
+    public ToolEntity getToolByName(String name) {
+        if (name == null || name.trim().isEmpty()) {
+            throw new IllegalArgumentException("name is required");
+        }
+        return toolRepository.findByName(name.trim())
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Tool not found by name: " + name));
+    }
+
+    public List<NameCategory> getAllNamesWithCategory() {
+        List<ToolEntity> tools = toolRepository.findAll();
+
+        // Usamos un LinkedHashMap para mantener orden de inserción y evitar duplicados
+        Map<String, NameCategory> unique = new LinkedHashMap<>();
+        for (ToolEntity t : tools) {
+            if (t.getName() == null || t.getCategory() == null) continue;
+            String key = t.getName() + "||" + t.getCategory();
+            unique.putIfAbsent(key, new NameCategory(t.getName(), t.getCategory()));
+        }
+        return new ArrayList<>(unique.values());
+    }
+    public List<ToolEntity> listAvailable() {
+        return toolRepository.findAllByInitialStateIgnoreCaseAndAmountGreaterThan("Disponible", 0);
+    }
+
+    // POJO simple para la respuesta
+    @Data
+    @AllArgsConstructor
+    public static class NameCategory {
+        private String name;
+        private String category;
     }
 
 

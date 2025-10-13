@@ -2,12 +2,16 @@ package com.example.demo.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -21,9 +25,14 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                .csrf(csrf -> csrf.disable())
+                .cors(cors -> {}) // usa el bean corsConfigurationSource()
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // preflight CORS
                         .requestMatchers("/public/**").permitAll()
-                        .requestMatchers("/api/v1/**").authenticated()
+                        .requestMatchers("/auth/me").authenticated()
+                        .requestMatchers("/users/me").authenticated()
+                        .requestMatchers("/users/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 ->
@@ -47,5 +56,29 @@ public class SecurityConfig {
             return authorities;
         });
         return converter;
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+
+        // Orígenes permitidos: tu frontend en dev
+        config.setAllowedOrigins(List.of("http://localhost:5173"));
+
+        // Métodos permitidos
+        config.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
+
+        // Headers permitidos (incluye Authorization para el Bearer)
+        config.setAllowedHeaders(List.of("Authorization","Content-Type","X-Requested-With"));
+
+        // Headers expuestos (opcional)
+        config.setExposedHeaders(List.of("Authorization"));
+
+        // No usamos cookies/sesiones entre dominios (Bearer en header)
+        config.setAllowCredentials(false);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 }

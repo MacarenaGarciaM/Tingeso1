@@ -31,4 +31,5 @@ public interface LoanRepository extends JpaRepository<LoanEntity, Long> {
     // ¿Tiene multas impagas?
     boolean existsByRutUserAndLateFineGreaterThanAndLateFinePaidIsFalse(String rutUser, int min);
     boolean existsByRutUserAndDamagePenaltyGreaterThanAndDamagePenaltyPaidIsFalse(String rutUser, int min);
+
 }

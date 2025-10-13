@@ -9,6 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/tool")
 @CrossOrigin("*")
@@ -43,6 +45,19 @@ public class ToolController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    @GetMapping("/names-categories")
+    public ResponseEntity<List<ToolService.NameCategory>> listNamesWithCategory() {
+        return ResponseEntity.ok(toolService.getAllNamesWithCategory());
+    }
+
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    @GetMapping("/available")
+    public ResponseEntity<List<ToolEntity>> listAvailable() {
+        return ResponseEntity.ok(toolService.listAvailable());
+    }
+
 
 
     @Getter
