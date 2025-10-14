@@ -73,7 +73,6 @@ public class LoanService {
         UserEntity kardexUser = new UserEntity();
         kardexUser.setRut(customer.getRut());
 
-        // Evitar duplicados en el préstamo
         Set<Long> seen = new HashSet<>();
         for (Item it : items) {
             if (it == null || it.toolId == null)
@@ -86,6 +85,7 @@ public class LoanService {
             if (qty <= 0) throw new IllegalArgumentException("quantity must be >= 1");
             if (qty != 1) throw new IllegalArgumentException("Only one unit per tool is allowed.");
 
+            // Cargamos SOLO UNA VEZ la herramienta "Disponible"
             ToolEntity disponibleTool = toolRepository.findById(it.toolId)
                     .orElseThrow(() -> new IllegalArgumentException("Tool not found (id=" + it.toolId + ")"));
 
@@ -95,13 +95,25 @@ public class LoanService {
                 throw new IllegalArgumentException("Not enough stock for tool id=" + it.toolId +
                         ". Available: " + disponibleTool.getAmount());
 
-            boolean alreadyActive = loanRepository
-                    .existsByRutUserAndLateReturnDateIsNullAndItems_Tool_Id(rutUser, it.toolId);
-            if (alreadyActive)
-                throw new IllegalArgumentException("User already has this tool in an active loan: " + it.toolId);
+            // === Validación de "misma herramienta ya arrendada por el mismo usuario" ===
+            // Busca ids de herramientas en estado PRESTADA con el mismo nombre+categoría
+            List<Long> prestadaIds = toolRepository.findIdsByNameCategoryAndState(
+                    disponibleTool.getName(), disponibleTool.getCategory(), "Prestada");
+
+            if (!prestadaIds.isEmpty()) {
+                boolean alreadyActive = loanRepository.existsActiveWithAnyToolId(rutUser, prestadaIds);
+                if (alreadyActive) {
+                    throw new IllegalArgumentException(
+                            "El usuario ya tiene un préstamo activo de esta herramienta (" +
+                                    disponibleTool.getName() + " - " + disponibleTool.getCategory() + ")."
+                    );
+                }
+            }
+            // ===========================================================================
 
             // Mover Disponible -> Prestada y OBTENER el registro/bucket en "Prestada"
-            ToolEntity prestadaTool = toolService.updateTool(it.toolId, "Prestada", null, kardexUser);
+            ToolEntity prestadaTool =
+                    toolService.updateTool(it.toolId, "Prestada", null, null, kardexUser);
 
             // Guardar en loan_item el ID de la herramienta "Prestada"
             LoanItemEntity line = new LoanItemEntity();
@@ -175,11 +187,13 @@ public class LoanService {
                 Integer replacement = tool.getRepositionValue(); // ajusta el getter si se llama diferente
                 if (replacement == null) replacement = 0;
                 damagePenalty += replacement;
-                toolService.updateTool(prestadaId, "Dada de baja", null, kardexUser);
+                toolService.updateTool(prestadaId, "Dada de baja", null, null, kardexUser);
+
             } else if (damagedToolIds.contains(prestadaId)) {
-                toolService.updateTool(prestadaId, "En reparación", null, kardexUser);
+                toolService.updateTool(prestadaId, "En reparación", null, null, kardexUser);
+
             } else {
-                toolService.updateTool(prestadaId, "Disponible", null, kardexUser);
+                toolService.updateTool(prestadaId, "Disponible", null, null, kardexUser);
             }
         }
 

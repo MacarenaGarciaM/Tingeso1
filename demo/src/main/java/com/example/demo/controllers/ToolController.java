@@ -31,15 +31,15 @@ public class ToolController {
         }
     }
 
-    // Actualizar herramienta existente
     @PreAuthorize("hasAnyRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<?> updateTool(@PathVariable Long id,
                                         @RequestParam(required = false) String state,
                                         @RequestParam(required = false) Integer amount,
+                                        @RequestParam(required = false) Integer repositionValue,
                                         @RequestBody UserEntity user) {
         try {
-            ToolEntity updatedTool = toolService.updateTool(id, state, amount, user);
+            ToolEntity updatedTool = toolService.updateTool(id, state, amount, repositionValue, user);
             return ResponseEntity.ok(updatedTool);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());

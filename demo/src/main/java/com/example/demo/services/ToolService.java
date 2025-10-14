@@ -85,7 +85,9 @@ public class ToolService {
         return savedTool;
     }
 
-    public ToolEntity updateTool(Long id, String newState, Integer newAmount, UserEntity rutUser) {
+    public ToolEntity updateTool(Long id, String newState, Integer newAmount,
+                                 Integer newRepositionValue, UserEntity rutUser) {
+
         ToolEntity tool = toolRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Tool not found"));
 
@@ -188,12 +190,14 @@ public class ToolService {
             tool.setInitialState(newState);
             tool.setAvailable(newState.equals("Disponible"));
         }
-
         if (newAmount != null) {
-            if (newAmount < 0) {
-                throw new IllegalArgumentException("Amount cannot be negative.");
-            }
+            if (newAmount < 0) throw new IllegalArgumentException("Amount cannot be negative.");
             tool.setAmount(newAmount);
+        }
+
+        if (newRepositionValue != null) {
+            if (newRepositionValue < 0) throw new IllegalArgumentException("Reposition value cannot be negative.");
+            tool.setRepositionValue(newRepositionValue);
         }
 
         return toolRepository.save(tool);
