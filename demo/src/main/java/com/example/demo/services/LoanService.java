@@ -1,4 +1,3 @@
-// src/main/java/com/example/demo/services/LoanService.java
 package com.example.demo.services;
 
 import com.example.demo.entities.LoanEntity;
@@ -251,6 +250,15 @@ public class LoanService {
         if (days < 1) days = 1; // mínimo 1 día
         return (int) (days * DAILY_RENT_PRICE);
     }
+
+    public List<LoanEntity> listActiveLoans(String rutUser) {
+        return loanRepository.findByRutUserAndLateReturnDateIsNull(rutUser);
+    }
+
+    public List<LoanEntity> listAllActiveLoans() {
+        return loanRepository.findByLateReturnDateIsNull();
+    }
+
 
     // Body para creación (sin DTOs externos)
     public static class Item {

@@ -1,5 +1,6 @@
 package com.example.demo.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -19,8 +20,9 @@ public class KardexEntity {
     @Column(unique = true, nullable = false)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tool_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer","handler"})
     private ToolEntity tool;
     private String rutUser;
     private String type;

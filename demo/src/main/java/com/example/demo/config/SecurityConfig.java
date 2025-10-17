@@ -33,6 +33,7 @@ public class SecurityConfig {
                         .requestMatchers("/auth/me").authenticated()
                         .requestMatchers("/users/me").authenticated()
                         .requestMatchers("/users/**").authenticated()
+                        .requestMatchers("/kardex/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 ->
@@ -50,9 +51,11 @@ public class SecurityConfig {
 
             if (realmAccess != null && realmAccess.get("roles") instanceof List<?>) {
                 List<?> roles = (List<?>) realmAccess.get("roles");
-                roles.forEach(r -> authorities.add(new SimpleGrantedAuthority("ROLE_" + r)));
+                roles.forEach(r -> {
+                    String role = String.valueOf(r).toUpperCase(); // 👈 normaliza
+                    authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
+                });
             }
-
             return authorities;
         });
         return converter;
@@ -81,4 +84,5 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", config);
         return source;
     }
+
 }

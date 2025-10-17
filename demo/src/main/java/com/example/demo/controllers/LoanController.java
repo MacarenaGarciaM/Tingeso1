@@ -5,11 +5,14 @@ import com.example.demo.entities.LoanEntity;
 import com.example.demo.services.LoanService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import com.example.demo.repositories.LoanItemRepository;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -54,6 +57,7 @@ public class LoanController {
             Object actualReturnDateObj = body.get("actualReturnDate");
             if (actualReturnDateObj == null)
                 return ResponseEntity.badRequest().body("Field 'actualReturnDate' is required (YYYY-MM-DD).");
+
             LocalDate actualReturnDate = parseDateFlex(actualReturnDateObj.toString());
 
             Integer finePerDay = null;
@@ -67,11 +71,21 @@ public class LoanController {
             Set<Long> irreparable = toIdSet(body.get("irreparable"));
 
             LoanEntity updated = loanService.returnLoan(loanId, actualReturnDate, damaged, irreparable, finePerDay);
-            return ResponseEntity.ok(updated);
+
+            Map<String, Object> out = new LinkedHashMap<>();
+            out.put("id", updated.getId());
+            out.put("lateFine", updated.getLateFine());
+            out.put("damagePenalty", updated.getDamagePenalty());
+            return ResponseEntity.ok(out);
+
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return ResponseEntity.status(500).body(ex.getMessage());
         }
     }
+
 
     // Pagar multas (para que el usuario pueda volver a activo)
     @PreAuthorize("hasAnyRole('ADMIN')")
@@ -124,6 +138,27 @@ public class LoanController {
         out.add(Long.valueOf(value.toString()));
         return out;
     }
+
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    @GetMapping(value="/active", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<LoanEntity>> listActive(
+            @RequestParam(required = false) String rutUser,
+            org.springframework.security.core.Authentication auth
+    ) {
+        boolean isAdmin = auth.getAuthorities().stream()
+                .map(org.springframework.security.core.GrantedAuthority::getAuthority)
+                .anyMatch(a -> a != null && a.equalsIgnoreCase("ROLE_ADMIN")); // 👈
+
+        if (rutUser == null || rutUser.isBlank()) {
+            if (isAdmin) {
+                return ResponseEntity.ok(loanService.listAllActiveLoans());
+            } else {
+                return ResponseEntity.badRequest().build();
+            }
+        }
+        return ResponseEntity.ok(loanService.listActiveLoans(rutUser));
+    }
+
 
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @GetMapping("/top")

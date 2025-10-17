@@ -10,11 +10,17 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface LoanRepository extends JpaRepository<LoanEntity, Long> {
 
     long countByRutUserAndLateReturnDateIsNull(String rutUser);
 
+    @EntityGraph(attributePaths = {"items", "items.tool"})
+    List<LoanEntity> findByLateReturnDateIsNull();
+
+    @EntityGraph(attributePaths = {"items", "items.tool"})
+    List<LoanEntity> findByRutUserAndLateReturnDateIsNull(String rutUser);
 
     // Validar si el usuario ya tiene activa la misma herramienta (por tool base)
     boolean existsByRutUserAndLateReturnDateIsNullAndItems_Tool_Id(String rutUser, Long toolId);
@@ -37,4 +43,8 @@ public interface LoanRepository extends JpaRepository<LoanEntity, Long> {
             @Param("rut") String rutUser,
             @Param("toolIds") Collection<Long> toolIds
     );
+
+    @Override
+    @EntityGraph(attributePaths = {"items", "items.tool"})
+    Optional<LoanEntity> findById(Long id);
 }
