@@ -14,25 +14,26 @@ import java.time.LocalDate;
 @RequiredArgsConstructor
 public class KardexService {
     private final KardexRepository kardexRepository;
-    // src/main/java/com/example/demo/services/KardexService.java
+
     public Page<KardexEntity> search(
             Long toolId, String rutUser, String type,
             LocalDate start, LocalDate end,
             String name, String category,
             Pageable pageable
     ) {
-        String typeLower = (type == null || type.isBlank()) ? null : type.toLowerCase();
+        String typeLower   = (type == null || type.isBlank()) ? "" : type.toLowerCase();
+        String namePat     = (name == null || name.isBlank()) ? "" : "%" + name.toLowerCase() + "%";
+        String categoryPat = (category == null || category.isBlank()) ? "" : "%" + category.toLowerCase() + "%";
 
-        String namePat = (name == null || name.isBlank())
-                ? null
-                : "%" + name.toLowerCase() + "%";
-
-        String categoryPat = (category == null || category.isBlank())
-                ? null
-                : "%" + category.toLowerCase() + "%";
+        boolean hasFrom = (start != null);
+        boolean hasTo   = (end   != null);
 
         return kardexRepository.search(
-                toolId, rutUser, typeLower, start, end, namePat, categoryPat, pageable
+                toolId, rutUser, typeLower,
+                hasFrom, start,
+                hasTo,   end,
+                namePat, categoryPat,
+                pageable
         );
     }
 
