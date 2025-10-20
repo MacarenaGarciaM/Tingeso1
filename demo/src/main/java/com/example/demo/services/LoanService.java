@@ -137,68 +137,65 @@ public class LoanService {
     public LoanEntity returnLoan(
             Long loanId,
             LocalDate actualReturnDate,
-            Set<Long> damagedToolIds,      // opcional (IDs de loan_item.tool.id en estado Prestada)
-            Set<Long> irreparableToolIds,  // opcional (IDs de loan_item.tool.id en estado Prestada)
-            Integer finePerDay
+            Set<Long> damagedToolIds,          // IDs de herramientas marcadas dañadas
+            Set<Long> irreparableToolIds,      // IDs de herramientas irrecuperables
+            Integer finePerDay,
+            Map<Long, Integer> repairCosts     // 👈 NUEVO: costo por reparación de dañadas
     ) {
         if (actualReturnDate == null) throw new IllegalArgumentException("actualReturnDate is required.");
 
         LoanEntity loan = loanRepository.findById(loanId)
                 .orElseThrow(() -> new IllegalArgumentException("Loan not found: " + loanId));
-
         if (loan.getLateReturnDate() != null)
             throw new IllegalArgumentException("Loan is already returned (closed).");
 
-        // Normalizar sets
-        damagedToolIds = (damagedToolIds == null) ? Collections.emptySet() : damagedToolIds;
+        damagedToolIds     = (damagedToolIds == null) ? Collections.emptySet() : damagedToolIds;
         irreparableToolIds = (irreparableToolIds == null) ? Collections.emptySet() : irreparableToolIds;
+        repairCosts        = (repairCosts == null) ? Collections.emptyMap() : repairCosts;
 
-        // No se pueden superponer
+        // no superposición
         Set<Long> inter = new HashSet<>(damagedToolIds);
         inter.retainAll(irreparableToolIds);
         if (!inter.isEmpty())
             throw new IllegalArgumentException("A tool cannot be both damaged and irreparable: " + inter);
 
-        // Validar que los IDs correspondan al préstamo (IDs de herramientas en estado Prestada)
+        // validar que pertenecen al préstamo
         Set<Long> loanToolIds = new HashSet<>();
         for (LoanItemEntity li : loan.getItems()) loanToolIds.add(li.getTool().getId());
-
         if (!loanToolIds.containsAll(damagedToolIds)) {
-            Set<Long> unknown = new HashSet<>(damagedToolIds);
-            unknown.removeAll(loanToolIds);
+            Set<Long> unknown = new HashSet<>(damagedToolIds); unknown.removeAll(loanToolIds);
             throw new IllegalArgumentException("Damaged IDs not in this loan: " + unknown);
         }
         if (!loanToolIds.containsAll(irreparableToolIds)) {
-            Set<Long> unknown = new HashSet<>(irreparableToolIds);
-            unknown.removeAll(loanToolIds);
+            Set<Long> unknown = new HashSet<>(irreparableToolIds); unknown.removeAll(loanToolIds);
             throw new IllegalArgumentException("Irreparable IDs not in this loan: " + unknown);
         }
 
-        // Para kardex
+        // kardex
         UserEntity kardexUser = new UserEntity();
         kardexUser.setRut(loan.getRutUser());
 
         int damagePenalty = 0;
 
         for (LoanItemEntity line : loan.getItems()) {
-            Long prestadaId = line.getTool().getId();
+            Long toolId = line.getTool().getId();
             ToolEntity tool = line.getTool();
 
-            if (irreparableToolIds.contains(prestadaId)) {
-                Integer replacement = tool.getRepositionValue(); // ajusta el getter si se llama diferente
-                if (replacement == null) replacement = 0;
+            if (irreparableToolIds.contains(toolId)) {
+                int replacement = Optional.ofNullable(tool.getRepositionValue()).orElse(0);
                 damagePenalty += replacement;
-                toolService.updateTool(prestadaId, "Dada de baja", null, null, kardexUser);
+                toolService.updateTool(toolId, "Dada de baja", null, null, kardexUser);
 
-            } else if (damagedToolIds.contains(prestadaId)) {
-                toolService.updateTool(prestadaId, "En reparación", null, null, kardexUser);
+            } else if (damagedToolIds.contains(toolId)) {
+                int repair = Math.max(0, Optional.ofNullable(repairCosts.get(toolId)).orElse(0));
+                damagePenalty += repair;
+                toolService.updateTool(toolId, "En reparación", null, null, kardexUser);
 
             } else {
-                toolService.updateTool(prestadaId, "Disponible", null, null, kardexUser);
+                toolService.updateTool(toolId, "Disponible", null, null, kardexUser);
             }
         }
 
-        // Multa por atraso
         int fineRate = (finePerDay == null) ? 0 : Math.max(0, finePerDay);
         long lateDays = Math.max(0, ChronoUnit.DAYS.between(loan.getReturnDate(), actualReturnDate));
         int lateFine = (int) (lateDays * (long) fineRate);
@@ -206,23 +203,17 @@ public class LoanService {
         loan.setLateReturnDate(actualReturnDate);
         loan.setLateFine(lateFine);
         loan.setDamagePenalty(damagePenalty);
-
-        // Flags impagas por defecto si hay montos
         if (lateFine > 0) loan.setLateFinePaid(false);
         if (damagePenalty > 0) loan.setDamagePenaltyPaid(false);
 
         LoanEntity saved = loanRepository.save(loan);
 
-        // Contador de préstamos activos -1
         UserEntity customer = userRepository.findByRut(loan.getRutUser());
         if (customer != null) {
             customer.setAmountOfLoans(Math.max(0, customer.getAmountOfLoans() - 1));
             userRepository.save(customer);
         }
-
-        // Recalcular 'active' (si ya no hay vencidos ni multas impagas, vuelve a true)
         userService.recomputeActiveStatus(loan.getRutUser());
-
         return saved;
     }
 

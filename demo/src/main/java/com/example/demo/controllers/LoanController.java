@@ -62,7 +62,6 @@ public class LoanController {
             Object actualReturnDateObj = body.get("actualReturnDate");
             if (actualReturnDateObj == null)
                 return ResponseEntity.badRequest().body("Field 'actualReturnDate' is required (YYYY-MM-DD).");
-
             LocalDate actualReturnDate = parseDateFlex(actualReturnDateObj.toString());
 
             Integer finePerDay = null;
@@ -72,10 +71,24 @@ public class LoanController {
                 else finePerDay = Integer.valueOf(finePerDayObj.toString());
             }
 
-            Set<Long> damaged = toIdSet(body.get("damaged"));
+            Set<Long> damaged     = toIdSet(body.get("damaged"));
             Set<Long> irreparable = toIdSet(body.get("irreparable"));
 
-            LoanEntity updated = loanService.returnLoan(loanId, actualReturnDate, damaged, irreparable, finePerDay);
+            // 👇 NUEVO: damagedCosts viene como objeto {"123": 5000, "456": 0}
+            Map<Long, Integer> damagedCosts = new HashMap<>();
+            Object dc = body.get("damagedCosts");
+            if (dc instanceof Map<?,?> map) {
+                for (Map.Entry<?,?> e : map.entrySet()) {
+                    Long key = Long.valueOf(e.getKey().toString());
+                    Integer val = (e.getValue() == null) ? 0 :
+                            (e.getValue() instanceof Number n ? n.intValue() : Integer.valueOf(e.getValue().toString()));
+                    damagedCosts.put(key, Math.max(0, val));
+                }
+            }
+
+            LoanEntity updated = loanService.returnLoan(
+                    loanId, actualReturnDate, damaged, irreparable, finePerDay, damagedCosts
+            );
 
             Map<String, Object> out = new LinkedHashMap<>();
             out.put("id", updated.getId());
