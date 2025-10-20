@@ -2,8 +2,11 @@
 package com.example.demo.controllers;
 
 import com.example.demo.entities.LoanEntity;
+import com.example.demo.repositories.LoanRepository;
 import com.example.demo.services.LoanService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +31,8 @@ public class LoanController {
     private LoanService loanService;
     @Autowired
     private LoanItemRepository loanItemRepository;
+    @Autowired
+    private LoanRepository loanRepository;
 
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @PostMapping
@@ -180,5 +185,41 @@ public class LoanController {
             out.add(m);
         }
         return ResponseEntity.ok(out);
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN')")
+    @GetMapping("/debts")
+    public ResponseEntity<Page<LoanEntity>> listLoansWithDebts(
+            @RequestParam(required = false) String rutUser,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size,
+            @RequestParam(defaultValue = "reservationDate,desc") String sort
+    ) {
+        String[] s = sort.split(",", 2);
+        Sort.Direction dir = (s.length > 1 && "asc".equalsIgnoreCase(s[1])) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Sort sortObj = Sort.by(dir, s[0]);
+
+        PageRequest pr = PageRequest.of(Math.max(page,0), Math.max(size,1), sortObj);
+        return ResponseEntity.ok(loanService.listLoansWithUnpaidDebts(
+                (rutUser != null && rutUser.isBlank()) ? null : rutUser,
+                start, end, pr
+        ));
+    }
+
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    @GetMapping("/by-rut")
+    public ResponseEntity<?> listByRut(
+            @RequestParam String rutUser,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size,
+            @RequestParam(defaultValue = "reservationDate,desc") String sort
+    ) {
+        String[] s = sort.split(",", 2);
+        Sort.Direction dir = (s.length > 1 && "asc".equalsIgnoreCase(s[1])) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        PageRequest pr = PageRequest.of(Math.max(page,0), Math.max(size,1), Sort.by(dir, s[0]));
+
+        return ResponseEntity.ok(loanRepository.findPageByRutUser(rutUser, pr));
     }
 }

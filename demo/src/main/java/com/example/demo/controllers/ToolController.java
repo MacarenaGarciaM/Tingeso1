@@ -58,6 +58,11 @@ public class ToolController {
         return ResponseEntity.ok(toolService.listAvailable());
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN')")
+    @GetMapping("/by-state")
+    public ResponseEntity<List<ToolEntity>> listByState(@RequestParam String state) {
+        return ResponseEntity.ok(toolService.listByState(state));
+    }
 
 
     @Getter

@@ -29,4 +29,6 @@ public interface ToolRepository extends JpaRepository<ToolEntity, Long> {
             @Param("category") String category,
             @Param("state") String state
     );
+
+    List<ToolEntity> findAllByInitialStateIgnoreCase(String state);
 }

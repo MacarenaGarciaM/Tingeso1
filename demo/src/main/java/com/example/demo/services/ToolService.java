@@ -229,6 +229,15 @@ public class ToolService {
         return toolRepository.findAllByInitialStateIgnoreCaseAndAmountGreaterThan("Disponible", 0);
     }
 
+    public List<ToolEntity> listByState(String state) {
+        if (state == null || state.isBlank()) throw new IllegalArgumentException("state is required");
+        // Si quieres sólo con stock >0 para cualquier estado:
+        if ("Disponible".equalsIgnoreCase(state)) {
+            return toolRepository.findAllByInitialStateIgnoreCaseAndAmountGreaterThan(state, 0);
+        }
+        return toolRepository.findAllByInitialStateIgnoreCase(state);
+    }
+
     // POJO simple para la respuesta
     @Data
     @AllArgsConstructor

@@ -37,12 +37,6 @@ public class UserEntity {
     /** Ya no usamos password local (ver Security) */
     @Transient
     private String password;
-
-    /**
-     * RUT normalizado: sin puntos, con guion y DV en mayúscula.
-     * Ej: "12345678-9" o "12345678-K".
-     * Puede partir null y luego ser obligatorio para operar.
-     */
     @Column(name = "rut", unique = true)
     private String rut;
 

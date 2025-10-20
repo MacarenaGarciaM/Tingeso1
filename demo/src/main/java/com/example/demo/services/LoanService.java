@@ -8,6 +8,8 @@ import com.example.demo.repositories.LoanRepository;
 import com.example.demo.repositories.ToolRepository;
 import com.example.demo.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -257,6 +259,23 @@ public class LoanService {
 
     public List<LoanEntity> listAllActiveLoans() {
         return loanRepository.findByLateReturnDateIsNull();
+    }
+
+    public Page<LoanEntity> listLoansWithUnpaidDebts(String rutUser,
+                                                     LocalDate start,
+                                                     LocalDate end,
+                                                     Pageable pageable) {
+        String rut = (rutUser != null && rutUser.isBlank()) ? null : rutUser;
+
+        boolean hasStart = (start != null);
+        boolean hasEnd   = (end   != null);
+
+        return loanRepository.findLoansWithUnpaidDebts(
+                rut,
+                hasStart, start,
+                hasEnd,   end,
+                pageable
+        );
     }
 
 
