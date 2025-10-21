@@ -28,6 +28,13 @@ public interface LoanRepository extends JpaRepository<LoanEntity, Long> {
     @EntityGraph(attributePaths = {"items", "items.tool"})
     Page<LoanEntity> findPageByRutUser(String rutUser, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"items", "items.tool"})
+    Page<LoanEntity> findByLateReturnDateIsNullAndReturnDateBefore(LocalDate today, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"items", "items.tool"})
+    Page<LoanEntity> findByRutUserAndLateReturnDateIsNullAndReturnDateBefore(
+            String rutUser, LocalDate today, Pageable pageable);
+
     boolean existsByRutUserAndLateReturnDateIsNullAndItems_Tool_Id(String rutUser, Long toolId);
     boolean existsByRutUserAndReturnDateBeforeAndLateReturnDateIsNull(String rutUser, LocalDate today);
     boolean existsByRutUserAndLateFineGreaterThanAndLateFinePaidIsFalse(String rutUser, int min);

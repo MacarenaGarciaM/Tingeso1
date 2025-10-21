@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Collection;
 import java.util.List;
 
+
 @Repository
 public interface ToolRepository extends JpaRepository<ToolEntity, Long> {
     List<ToolEntity> findByNameAndCategory(String name, String category);

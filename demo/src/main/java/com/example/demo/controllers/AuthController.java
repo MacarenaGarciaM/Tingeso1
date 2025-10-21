@@ -1,4 +1,3 @@
-// src/main/java/com/example/demo/controllers/AuthController.java
 package com.example.demo.controllers;
 
 import com.example.demo.entities.UserEntity;

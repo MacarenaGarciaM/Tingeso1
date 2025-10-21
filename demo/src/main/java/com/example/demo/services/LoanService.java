@@ -26,6 +26,7 @@ public class LoanService {
     private final UserRepository userRepository;
     private final ToolService toolService;
     private final UserService userService;
+    private final SettingService settingService;
 
     private static final int DAILY_RENT_PRICE = 2500;
 
@@ -240,9 +241,11 @@ public class LoanService {
 
     private int calculateLoanTotal(LocalDate reservationDate, LocalDate returnDate) {
         long days = ChronoUnit.DAYS.between(reservationDate, returnDate);
-        if (days < 1) days = 1; // mínimo 1 día
-        return (int) (days * DAILY_RENT_PRICE);
+        if (days < 1) days = 1;
+        int daily = settingService.getDailyRentPrice(); // 👈 lee de BD
+        return (int) (days * daily);
     }
+
 
     public List<LoanEntity> listActiveLoans(String rutUser) {
         return loanRepository.findByRutUserAndLateReturnDateIsNull(rutUser);
@@ -267,6 +270,14 @@ public class LoanService {
                 hasEnd,   end,
                 pageable
         );
+    }
+
+    public Page<LoanEntity> listOverdueLoans(String rutUser, Pageable pageable) {
+        LocalDate today = LocalDate.now();
+        if (rutUser == null || rutUser.isBlank()) {
+            return loanRepository.findByLateReturnDateIsNullAndReturnDateBefore(today, pageable);
+        }
+        return loanRepository.findByRutUserAndLateReturnDateIsNullAndReturnDateBefore(rutUser, today, pageable);
     }
 
 

@@ -1,4 +1,3 @@
-// src/main/java/com/example/demo/controllers/KardexController.java
 package com.example.demo.controllers;
 
 import com.example.demo.entities.KardexEntity;
@@ -36,9 +35,7 @@ public class KardexController {
             @RequestParam(defaultValue = "12") int size,
             @RequestParam(defaultValue = "movementDate,desc") String sort
     ) {
-        // Normaliza strings vacíos a null para que los filtros opcionales funcionen
-
-
+        //Normalice empty stings to null, optionals filters work now
         rutUser = (rutUser != null && rutUser.isBlank()) ? null : rutUser;
         type = (type != null && type.isBlank()) ? null : type;
         name = (name != null && name.isBlank()) ? null : name;

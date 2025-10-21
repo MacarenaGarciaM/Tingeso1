@@ -65,19 +65,19 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // Orígenes permitidos: tu frontend en dev
+        // Allowed origins: front in dev
         config.setAllowedOrigins(List.of("http://localhost:5173"));
 
-        // Métodos permitidos
+        //Allowed methods
         config.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
 
-        // Headers permitidos (incluye Authorization para el Bearer)
+        // Allowed Headers includes Authorization for Bearer
         config.setAllowedHeaders(List.of("Authorization","Content-Type","X-Requested-With"));
 
-        // Headers expuestos (opcional)
+        //Exposed Headers
         config.setExposedHeaders(List.of("Authorization"));
 
-        // No usamos cookies/sesiones entre dominios (Bearer en header)
+        //No cookies
         config.setAllowCredentials(false);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

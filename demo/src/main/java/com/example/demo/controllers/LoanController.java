@@ -1,4 +1,3 @@
-// src/main/java/com/example/demo/controllers/LoanController.java
 package com.example.demo.controllers;
 
 import com.example.demo.entities.LoanEntity;
@@ -14,8 +13,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import com.example.demo.repositories.LoanItemRepository;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -71,14 +68,13 @@ public class LoanController {
                 else finePerDay = Integer.valueOf(finePerDayObj.toString());
             }
 
-            Set<Long> damaged     = toIdSet(body.get("damaged"));
+            Set<Long> damaged = toIdSet(body.get("damaged"));
             Set<Long> irreparable = toIdSet(body.get("irreparable"));
 
-            // 👇 NUEVO: damagedCosts viene como objeto {"123": 5000, "456": 0}
             Map<Long, Integer> damagedCosts = new HashMap<>();
             Object dc = body.get("damagedCosts");
-            if (dc instanceof Map<?,?> map) {
-                for (Map.Entry<?,?> e : map.entrySet()) {
+            if (dc instanceof Map<?, ?> map) {
+                for (Map.Entry<?, ?> e : map.entrySet()) {
                     Long key = Long.valueOf(e.getKey().toString());
                     Integer val = (e.getValue() == null) ? 0 :
                             (e.getValue() instanceof Number n ? n.intValue() : Integer.valueOf(e.getValue().toString()));
@@ -105,7 +101,8 @@ public class LoanController {
     }
 
 
-    // Pagar multas (para que el usuario pueda volver a activo)
+
+    //PayFines--> user active again
     @PreAuthorize("hasAnyRole('ADMIN')")
     @PostMapping("/{loanId}/pay-fines")
     public ResponseEntity<?> payFines(
@@ -124,9 +121,9 @@ public class LoanController {
         }
     }
 
-    // ===== Helpers =====
+    //Helpers:
 
-    /** Acepta "YYYY-MM-DD" o ISO datetime y toma la fecha */
+    //Accepts "YYYY-MM-DD" or ISO datetime
     private LocalDate parseDateFlex(String raw) {
         try {
             return LocalDate.parse(raw);
@@ -139,7 +136,8 @@ public class LoanController {
         }
     }
 
-    /** Convierte arrays o valores sueltos a Set<Long> */
+
+    //Turns arrays or loose values to Set<Long>
     @SuppressWarnings("unchecked")
     private Set<Long> toIdSet(Object value) {
         if (value == null) return Collections.emptySet();
@@ -187,14 +185,18 @@ public class LoanController {
     ) {
         int size = (limit == null || limit <= 0) ? 10 : limit;
 
-        List<Object[]> rows = loanItemRepository.topByToolName(start, end, PageRequest.of(0, size));
+        boolean hasStart = (start != null);
+        boolean hasEnd   = (end   != null);
 
-        // Mapear Object[] -> { "tool": String, "times": long }
-        List<Map<String, Object>> out = new ArrayList<>();
+        List<Object[]> rows = loanItemRepository.topByToolName(
+                hasStart, start, hasEnd, end, PageRequest.of(0, size)
+        );
+
+        List<Map<String, Object>> out = new java.util.ArrayList<>();
         for (Object[] r : rows) {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("tool",  r[0]);            // toolNameSnapshot
-            m.put("times", ((Number) r[1]).longValue()); // count
+            Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("tool",  (String) r[0]);
+            m.put("times", ((Number) r[1]).longValue());
             out.add(m);
         }
         return ResponseEntity.ok(out);
@@ -234,5 +236,20 @@ public class LoanController {
         PageRequest pr = PageRequest.of(Math.max(page,0), Math.max(size,1), Sort.by(dir, s[0]));
 
         return ResponseEntity.ok(loanRepository.findPageByRutUser(rutUser, pr));
+    }
+
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    @GetMapping("/overdue")
+    public ResponseEntity<Page<LoanEntity>> listOverdue(
+            @RequestParam(required = false) String rutUser,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size,
+            @RequestParam(defaultValue = "returnDate,asc") String sort
+    ) {
+        String[] s = sort.split(",", 2);
+        Sort.Direction dir = (s.length > 1 && "desc".equalsIgnoreCase(s[1])) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        PageRequest pr = PageRequest.of(Math.max(page,0), Math.max(size,1), Sort.by(dir, s[0]));
+        return ResponseEntity.ok(loanService.listOverdueLoans(
+                (rutUser != null && rutUser.isBlank()) ? null : rutUser, pr));
     }
 }
