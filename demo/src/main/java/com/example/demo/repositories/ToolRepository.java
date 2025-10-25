@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 
 @Repository
@@ -32,4 +33,8 @@ public interface ToolRepository extends JpaRepository<ToolEntity, Long> {
     );
 
     List<ToolEntity> findAllByInitialStateIgnoreCase(String state);
+    Optional<ToolEntity> findFirstByNameAndCategoryAndInitialState(String name, String category, String initialState);
+    List<ToolEntity> findByNameAndCategoryAndInitialState(String name, String category, String initialState);
+
+
 }

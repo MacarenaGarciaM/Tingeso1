@@ -47,27 +47,24 @@ public class ToolService {
         }
 
         // Buscar si ya existe una herramienta con el mismo nombre y categoría
-        List<ToolEntity> existingTools = toolRepository.findByNameAndCategory(tool.getName(), tool.getCategory());
+        List<ToolEntity> existing = toolRepository
+                .findByNameAndCategoryAndInitialState(tool.getName(), tool.getCategory(), tool.getInitialState());
 
         ToolEntity savedTool;
-        if (!existingTools.isEmpty()) {
-            // Si existe: sumamos la cantidad
-            ToolEntity existingTool = existingTools.get(0);
-            int newAmount = existingTool.getAmount() + tool.getAmount();
-            existingTool.setAmount(newAmount);
-            existingTool.setInitialState(tool.getInitialState());
-            existingTool.setAvailable(tool.isAvailable());
-            existingTool.setRepositionValue(tool.getRepositionValue());
-            savedTool = toolRepository.save(existingTool);
+        if (!existing.isEmpty()) {
+            ToolEntity bucket = existing.get(0);
+            bucket.setAmount(bucket.getAmount() + tool.getAmount());
+            bucket.setAvailable("Disponible".equalsIgnoreCase(bucket.getInitialState()));
+            bucket.setRepositionValue(tool.getRepositionValue()); // si quieres actualizarlo
+            savedTool = toolRepository.save(bucket);
         } else {
-            // Si no existe: crear nueva
             ToolEntity newTool = new ToolEntity(
                     null,
                     tool.getName(),
                     tool.getCategory(),
                     tool.getInitialState(),
                     tool.getRepositionValue(),
-                    tool.isAvailable(),
+                    "Disponible".equalsIgnoreCase(tool.getInitialState()),
                     tool.getAmount()
             );
             savedTool = toolRepository.save(newTool);
@@ -186,9 +183,45 @@ public class ToolService {
                 return savedTargetTool;
             }
 
-            // Caso 3: Actualización normal (ej: Prestada -> Reparación)
-            tool.setInitialState(newState);
-            tool.setAvailable(newState.equals("Disponible"));
+            // Caso 3: estado A (≠ Disponible) → estado B (≠ Disponible)
+            if (!tool.getInitialState().equals("Disponible") && !newState.equals("Disponible")) {
+
+                if (tool.getAmount() <= 0) {
+                    throw new IllegalArgumentException("No hay stock en este estado para mover.");
+                }
+
+                // 1) Restar del bucket origen
+                tool.setAmount(tool.getAmount() - 1);
+                toolRepository.save(tool);
+
+                // 2) Buscar/crear bucket destino (mismo name+category+reposition, estado = newState)
+                Optional<ToolEntity> optTarget =
+                        toolRepository.findFirstByNameAndCategoryAndInitialState(
+                                tool.getName(), tool.getCategory(), newState);
+
+                ToolEntity target = optTarget.orElseGet(() -> new ToolEntity(
+                        null,
+                        tool.getName(),
+                        tool.getCategory(),
+                        newState,
+                        tool.getRepositionValue(),
+                        false,      // available solo en "Disponible"
+                        0
+                ));
+                target.setAmount(target.getAmount() + 1);
+                ToolEntity savedTarget = toolRepository.save(target);
+
+                // 3) Kardex
+                KardexEntity k = new KardexEntity();
+                k.setTool(savedTarget);
+                k.setRutUser(rutUser.getRut());
+                k.setType("Cambio de estado: " + newState);
+                k.setMovementDate(LocalDate.now());
+                k.setStock(savedTarget.getAmount());
+                kardexRepository.save(k);
+
+                return savedTarget;
+            }
         }
         if (newAmount != null) {
             if (newAmount < 0) throw new IllegalArgumentException("Amount cannot be negative.");

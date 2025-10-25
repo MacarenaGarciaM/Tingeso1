@@ -1,197 +1,373 @@
 package com.example.demo.controllers;
 
 import com.example.demo.entities.LoanEntity;
-import com.example.demo.services.LoanService;
 import com.example.demo.repositories.LoanItemRepository;
+import com.example.demo.repositories.LoanRepository;
+import com.example.demo.services.LoanService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.*;
 import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(LoanController.class)
+@Import(LoanControllerTest.MethodSecurityCfg.class)
 class LoanControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @TestConfiguration
+    @EnableMethodSecurity
+    static class MethodSecurityCfg {}
+
+    @Autowired MockMvc mvc;
 
     @MockitoBean
-    private LoanService loanService;
+    LoanService loanService;
+    @MockitoBean LoanItemRepository loanItemRepository;
+    @MockitoBean LoanRepository loanRepository;
 
-    @MockitoBean
-    private LoanItemRepository loanItemRepository;
-
-    // ====== POST /loan ======
+    // POST /loan
     @Test
-    void createLoan_ok() throws Exception {
-        LoanEntity created = new LoanEntity();
-        created.setId(123L);
-        created.setReservationDate(LocalDate.parse("2025-10-01"));
-        created.setReturnDate(LocalDate.parse("2025-10-04"));
+    void createLoan_ok_userRole() throws Exception {
+        LoanEntity created = new LoanEntity(); created.setId(10L);
 
         given(loanService.createLoan(eq("11.111.111-1"),
                 eq(LocalDate.parse("2025-10-01")),
                 eq(LocalDate.parse("2025-10-04")),
-                anyList()))
-                .willReturn(created);
+                anyList())).willReturn(created);
 
-        String itemsJson = "[]"; // cuerpo mínimo válido (lista vacía de items)
-
-        mockMvc.perform(post("/loan")
-                        .param("rutUser", "11.111.111-1")
-                        .param("reservationDate", "2025-10-01")
-                        .param("returnDate", "2025-10-04")
+        mvc.perform(post("/loan")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER")))
+                        .param("rutUser","11.111.111-1")
+                        .param("reservationDate","2025-10-01")
+                        .param("returnDate","2025-10-04")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(itemsJson))
+                        .content("[]"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(123)));
+                .andExpect(jsonPath("$.id", is(10)));
     }
 
     @Test
-    void createLoan_badRequest_whenServiceThrowsIAE() throws Exception {
+    void createLoan_badRequest_whenServiceThrows() throws Exception {
         given(loanService.createLoan(anyString(), any(), any(), anyList()))
-                .willThrow(new IllegalArgumentException("User inactive"));
+                .willThrow(new IllegalArgumentException("Inactive user"));
 
-        mockMvc.perform(post("/loan")
-                        .param("rutUser", "11.111.111-1")
-                        .param("reservationDate", "2025-10-01")
-                        .param("returnDate", "2025-10-04")
+        mvc.perform(post("/loan")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER")))
+                        .param("rutUser","11.111.111-1")
+                        .param("reservationDate","2025-10-01")
+                        .param("returnDate","2025-10-04")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("[]"))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string(containsString("User inactive")));
+                .andExpect(content().string(containsString("Inactive user")));
     }
 
-    // ====== POST /loan/{id}/return ======
+    // POST /loan/{id}/return (ADMIN)
     @Test
-    void returnLoan_ok() throws Exception {
+    void returnLoan_ok_adminRole_mapsOutput() throws Exception {
         LoanEntity updated = new LoanEntity();
-        updated.setId(9L);
+        updated.setId(7L);
+        updated.setLateFine(900);
+        updated.setDamagePenalty(1200);
 
-        given(loanService.returnLoan(eq(9L),
+        given(loanService.returnLoan(eq(7L),
                 eq(LocalDate.parse("2025-10-05")),
-                anySet(), anySet(), isNull()))
+                anySet(), anySet(), isNull(), anyMap()))
                 .willReturn(updated);
 
         String body = """
-            {
-              "actualReturnDate": "2025-10-05",
-              "damaged": [1,2],
-              "irreparable": []
-            }
-            """;
+          {
+            "actualReturnDate":"2025-10-05",
+            "damaged":[1],
+            "irreparable":[],
+            "damagedCosts":{"1":1200}
+          }
+          """;
 
-        mockMvc.perform(post("/loan/{loanId}/return", 9L)
+        mvc.perform(post("/loan/{loanId}/return", 7L)
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(9)));
+                .andExpect(jsonPath("$.id", is(7)))
+                .andExpect(jsonPath("$.lateFine", is(900)))
+                .andExpect(jsonPath("$.damagePenalty", is(1200)));
     }
 
     @Test
-    void returnLoan_badRequest_whenServiceThrowsIAE() throws Exception {
-        given(loanService.returnLoan(anyLong(), any(), anySet(), anySet(), any()))
-                .willThrow(new IllegalArgumentException("Invalid state"));
-
-        String body = """
-            { "actualReturnDate": "2025-10-05" }
-            """;
-
-        mockMvc.perform(post("/loan/{loanId}/return", 1L)
+    void returnLoan_missingDate_returns400() throws Exception {
+        mvc.perform(post("/loan/{loanId}/return", 1L)
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
+                        .content("{\"damaged\":[]}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string(containsString("Invalid state")));
+                .andExpect(content().string(containsString("actualReturnDate")));
     }
 
-    // ====== POST /loan/{id}/pay-fines ======
     @Test
-    void payFines_ok() throws Exception {
-        LoanEntity updated = new LoanEntity();
-        updated.setId(7L);
+    void returnLoan_invalidDate_returns400() throws Exception {
+        mvc.perform(post("/loan/{loanId}/return", 1L)
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"actualReturnDate\":\"xxx\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(containsString("Invalid date")));
+    }
 
-        given(loanService.payFines(7L, true, false)).willReturn(updated);
+    // finePerDay as String and damaged/irreparable as loose value
+    @Test
+    void returnLoan_stringFinePerDay_andScalarSets_ok() throws Exception {
+        LoanEntity updated = new LoanEntity(); updated.setId(5L);
+
+        given(loanService.returnLoan(eq(5L),
+                eq(LocalDate.parse("2025-10-06")),
+                argThat(s -> s.contains(3L)),
+                argThat(s -> s.contains(4L)),
+                eq(5), // finePerDay parsed from "5"
+                anyMap()))
+                .willReturn(updated);
 
         String body = """
-            { "payLateFine": true, "payDamagePenalty": false }
-            """;
+          {
+            "actualReturnDate":"2025-10-06",
+            "finePerDay":"5",
+            "damaged":3,
+            "irreparable":"4"
+          }
+          """;
 
-        mockMvc.perform(post("/loan/{loanId}/pay-fines", 7L)
+        mvc.perform(post("/loan/{loanId}/return", 5L)
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(7)));
+                .andExpect(jsonPath("$.id", is(5)));
     }
 
     @Test
-    void payFines_badRequest_whenServiceThrowsIAE() throws Exception {
-        given(loanService.payFines(anyLong(), anyBoolean(), anyBoolean()))
-                .willThrow(new IllegalArgumentException("No fines to pay"));
+    void returnLoan_serviceThrowsIAE_returns400() throws Exception {
+        given(loanService.returnLoan(anyLong(), any(), anySet(), anySet(), any(), anyMap()))
+                .willThrow(new IllegalArgumentException("bad state"));
 
-        String body = """
-            { "payLateFine": false, "payDamagePenalty": false }
-            """;
-
-        mockMvc.perform(post("/loan/{loanId}/pay-fines", 3L)
+        mvc.perform(post("/loan/{loanId}/return", 1L)
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
+                        .content("{\"actualReturnDate\":\"2025-10-01\"}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string(containsString("No fines to pay")));
+                .andExpect(content().string(containsString("bad state")));
     }
 
-    // ====== GET /loan/top ======
     @Test
-    void topTools_ok_mapsRows() throws Exception {
-        // Simulamos que el repo devuelve: [["Taladro", 5], ["Sierra", 3]]
-        List<Object[]> rows = List.of(
-                new Object[]{"Taladro", 5L},
-                new Object[]{"Sierra", 3L}
-        );
-        // start/end vienen parseados por @DateTimeFormat
-        given(loanItemRepository.topByToolName(
-                eq(LocalDate.parse("2025-10-01")),
-                eq(LocalDate.parse("2025-10-31")),
+    void returnLoan_serviceThrowsRuntime_returns500() throws Exception {
+        given(loanService.returnLoan(anyLong(), any(), anySet(), anySet(), any(), anyMap()))
+                .willThrow(new RuntimeException("boom"));
+
+        mvc.perform(post("/loan/{loanId}/return", 1L)
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"actualReturnDate\":\"2025-10-01\"}"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().string(containsString("boom")));
+    }
+
+    // POST /loan/{id}/pay-fines
+    @Test
+    void payFines_ok_adminRole() throws Exception {
+        LoanEntity after = new LoanEntity(); after.setId(3L);
+        given(loanService.payFines(3L, true, false)).willReturn(after);
+
+        mvc.perform(post("/loan/{loanId}/pay-fines", 3L)
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"payLateFine\":true,\"payDamagePenalty\":false}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(3)));
+    }
+
+    //GET /loan/active
+    @Test
+    void listActive_admin_noRut_callsAllActive() throws Exception {
+        given(loanService.listAllActiveLoans()).willReturn(List.of());
+
+        mvc.perform(get("/loan/active")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(0)));
+
+        verify(loanService).listAllActiveLoans();
+    }
+
+    @Test
+    void listActive_user_noRut_returns400() throws Exception {
+        mvc.perform(get("/loan/active")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void listActive_withRut_callsByRut() throws Exception {
+        given(loanService.listActiveLoans("11.111.111-1")).willReturn(List.of());
+
+        mvc.perform(get("/loan/active")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER")))
+                        .param("rutUser","11.111.111-1"))
+                .andExpect(status().isOk());
+
+        verify(loanService).listActiveLoans("11.111.111-1");
+    }
+    @Test
+    void listActive_admin_blankRut_usesAllActive() throws Exception {
+        given(loanService.listAllActiveLoans()).willReturn(List.of());
+        mvc.perform(get("/loan/active")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
+                        .param("rutUser"," "))
+                .andExpect(status().isOk());
+        verify(loanService).listAllActiveLoans();
+    }
+
+    //GET /loan/top
+    @Test
+    void topTools_ok_flagsAndMapping() throws Exception {
+        List<Object[]> rows = List.of(new Object[]{"Taladro", 5L}, new Object[]{"Sierra", 3L});
+
+        given(loanItemRepository.topByToolName(eq(true), eq(LocalDate.parse("2025-10-01")),
+                eq(true), eq(LocalDate.parse("2025-10-31")),
                 eq(PageRequest.of(0, 2))))
                 .willReturn(rows);
 
-        ResultActions res = mockMvc.perform(get("/loan/top")
-                .param("limit", "2")
-                .param("start", "2025-10-01")
-                .param("end", "2025-10-31"));
-
-        res.andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        mvc.perform(get("/loan/top")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER")))
+                        .param("limit","2")
+                        .param("start","2025-10-01")
+                        .param("end","2025-10-31"))
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[0].tool", is("Taladro")))
-                .andExpect(jsonPath("$[0].times", is(5)))
-                .andExpect(jsonPath("$[1].tool", is("Sierra")))
-                .andExpect(jsonPath("$[1].times", is(3)));
+                .andExpect(jsonPath("$[0].times", is(5)));
     }
 
     @Test
-    void topTools_ok_defaultLimitAndNullDates() throws Exception {
-        // Cuando limit no viene, el controller usa size=10 y start/end = null
-        given(loanItemRepository.topByToolName(
-                isNull(), isNull(), eq(PageRequest.of(0, 10))))
+    void topTools_defaultLimit_andNoDates() throws Exception {
+        given(loanItemRepository.topByToolName(eq(false), isNull(), eq(false), isNull(),
+                eq(PageRequest.of(0, 10))))
                 .willReturn(List.of());
 
-        mockMvc.perform(get("/loan/top"))
+        mvc.perform(get("/loan/top")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(0)));
+    }
+
+    // GET /loan/debts (ADMIN)
+    @Test
+    void listLoansWithDebts_ok_admin_buildsPageRequestAndNullRut() throws Exception {
+        Page<LoanEntity> empty = new PageImpl<>(List.of(),
+                PageRequest.of(0, 1, Sort.by(Sort.Direction.DESC, "reservationDate")), 0);
+
+        given(loanService.listLoansWithUnpaidDebts(
+                isNull(),
+                eq(LocalDate.parse("2025-10-01")),
+                eq(LocalDate.parse("2025-10-31")),
+                eq(PageRequest.of(0, 1, Sort.by(Sort.Direction.DESC, "reservationDate")))
+        )).willReturn(empty);
+
+        mvc.perform(get("/loan/debts")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
+                        .param("rutUser","")
+                        .param("start","2025-10-01")
+                        .param("end","2025-10-31")
+                        .param("page","0")
+                        .param("size","1")
+                        .param("sort","reservationDate,desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(0)));
+    }
+
+    @Test
+    void listLoansWithDebts_asc_andClampedPaging() throws Exception {
+        Page<LoanEntity> empty = new PageImpl<>(List.of(),
+                PageRequest.of(0, 1, Sort.by(Sort.Direction.ASC, "reservationDate")), 0);
+
+        given(loanService.listLoansWithUnpaidDebts(
+                isNull(), isNull(), isNull(),
+                eq(PageRequest.of(0, 1, Sort.by(Sort.Direction.ASC, "reservationDate")))
+        )).willReturn(empty);
+
+        mvc.perform(get("/loan/debts")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
+                        .param("rutUser","")
+                        .param("page","-5")
+                        .param("size","0")
+                        .param("sort","reservationDate,asc"))
+                .andExpect(status().isOk());
+    }
+
+    // GET /loan/by-rut
+    @Test
+    void listByRut_ok_buildsPageRequest() throws Exception {
+        Page<LoanEntity> pg = new PageImpl<>(List.of(),
+                PageRequest.of(0, 2, Sort.by(Sort.Direction.DESC, "reservationDate")), 0);
+        given(loanRepository.findPageByRutUser(eq("11.111.111-1"),
+                eq(PageRequest.of(0, 2, Sort.by(Sort.Direction.DESC, "reservationDate")))))
+                .willReturn(pg);
+
+        mvc.perform(get("/loan/by-rut")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER")))
+                        .param("rutUser","11.111.111-1")
+                        .param("page","0")
+                        .param("size","2")
+                        .param("sort","reservationDate,desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(0)));
+    }
+
+    //GET /loan/overdue
+    @Test
+    void listOverdue_ok_defaultAscSort() throws Exception {
+        Page<LoanEntity> pg = new PageImpl<>(List.of(),
+                PageRequest.of(0, 12, Sort.by(Sort.Direction.ASC, "returnDate")), 0);
+
+        given(loanService.listOverdueLoans(isNull(),
+                eq(PageRequest.of(0, 12, Sort.by(Sort.Direction.ASC, "returnDate")))))
+                .willReturn(pg);
+
+        mvc.perform(get("/loan/overdue")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(0)));
+    }
+
+    @Test
+    void listOverdue_desc_withRut() throws Exception {
+        Page<LoanEntity> pg = new PageImpl<>(List.of(),
+                PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "returnDate")), 0);
+
+        given(loanService.listOverdueLoans(eq("11.111.111-1"),
+                eq(PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "returnDate")))))
+                .willReturn(pg);
+
+        mvc.perform(get("/loan/overdue")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER")))
+                        .param("rutUser","11.111.111-1")
+                        .param("size","5")
+                        .param("sort","returnDate,desc"))
+                .andExpect(status().isOk());
     }
 }
