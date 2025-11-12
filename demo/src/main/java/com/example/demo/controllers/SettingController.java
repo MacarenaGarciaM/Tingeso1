@@ -17,13 +17,14 @@ public class SettingController {
 
     private final SettingService setting;
 
-    // visible para usuarios logueados (o cámbialo a permitAll si quieres público)
+
+    //logged users can see it
     @GetMapping("/daily-rate")
     public ResponseEntity<Map<String, Object>> getDailyRate() {
         return ResponseEntity.ok(Map.of("value", setting.getDailyRentPrice()));
     }
 
-    // sólo admin puede actualizar
+    //Just "Admin" can update it
     @PreAuthorize("hasAnyRole('ADMIN')")
     @PutMapping("/daily-rate")
     public ResponseEntity<Map<String, Object>> updateDailyRate(@RequestBody Map<String, Object> body) {

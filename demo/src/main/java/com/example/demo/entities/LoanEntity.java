@@ -1,4 +1,3 @@
-// src/main/java/com/example/demo/entities/LoanEntity.java
 package com.example.demo.entities;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;

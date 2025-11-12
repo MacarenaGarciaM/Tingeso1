@@ -1,4 +1,3 @@
-// src/main/java/com/example/demo/repositories/SettingRepository.java
 package com.example.demo.repositories;
 
 import com.example.demo.entities.SettingEntity;

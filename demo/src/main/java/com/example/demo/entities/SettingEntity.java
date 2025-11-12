@@ -1,4 +1,3 @@
-// src/main/java/com/example/demo/entities/SettingEntity.java
 package com.example.demo.entities;
 
 import jakarta.persistence.*;
@@ -13,5 +12,5 @@ public class SettingEntity {
     private String price;          // p.ej. "daily_rent_price"
 
     @Column(nullable = false)
-    private String text;          // guardamos como texto para simplicidad
+    private String text;          // as string for simplicity
 }

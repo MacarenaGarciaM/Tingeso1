@@ -1,4 +1,3 @@
-// src/main/java/com/example/demo/repositories/KardexRepository.java
 package com.example.demo.repositories;
 
 import com.example.demo.entities.KardexEntity;
@@ -28,13 +27,13 @@ public interface KardexRepository extends JpaRepository<KardexEntity, Long> {
     Page<KardexEntity> search(
             @Param("toolId") Long toolId,
             @Param("rutUser") String rutUser,
-            @Param("typeLower") String typeLower,     // "" si no filtra por tipo
-            @Param("hasFrom") boolean hasFrom,        // true si hay start != null
-            @Param("fromDate") LocalDate fromDate,    // puede ser null
-            @Param("hasTo") boolean hasTo,            // true si hay end != null
-            @Param("toDate") LocalDate toDate,        // puede ser null
-            @Param("namePat") String namePat,         // "" si no filtra por nombre
-            @Param("categoryPat") String categoryPat, // "" si no filtra por categoría
+            @Param("typeLower") String typeLower,     // "" if doesn't filter by type
+            @Param("hasFrom") boolean hasFrom,        // true if start != null
+            @Param("fromDate") LocalDate fromDate,    // can be null
+            @Param("hasTo") boolean hasTo,            // true if end != null
+            @Param("toDate") LocalDate toDate,        // can be null
+            @Param("namePat") String namePat,         // "" if doesn't filter by name
+            @Param("categoryPat") String categoryPat, // "" if doesn't filter by category
             Pageable pageable
     );
 

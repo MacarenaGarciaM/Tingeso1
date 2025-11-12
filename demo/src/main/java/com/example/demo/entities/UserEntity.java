@@ -1,4 +1,3 @@
-// src/main/java/com/example/demo/entities/UserEntity.java
 package com.example.demo.entities;
 
 import jakarta.persistence.*;

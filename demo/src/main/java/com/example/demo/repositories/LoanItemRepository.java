@@ -1,4 +1,3 @@
-// src/main/java/com/example/demo/repositories/LoanItemRepository.java
 package com.example.demo.repositories;
 
 import com.example.demo.entities.LoanItemEntity;
@@ -6,14 +5,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.security.core.parameters.P;
 
 import java.time.LocalDate;
 import java.util.List;
 
 public interface LoanItemRepository extends JpaRepository<LoanItemEntity, Long> {
 
-    // Ranking por nombre "snapshot" guardado en loan_item (evita duplicar por buckets de estado)
+    //Ranking by name, "snapshot" saved in loan_item (avoids duplicate states buckets )
     @Query("""
         select li.toolNameSnapshot as tool, count(li) as times
         from LoanItemEntity li

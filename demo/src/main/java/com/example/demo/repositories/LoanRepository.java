@@ -1,4 +1,3 @@
-// src/main/java/com/example/demo/repositories/LoanRepository.java
 package com.example.demo.repositories;
 
 import com.example.demo.entities.LoanEntity;
@@ -17,7 +16,6 @@ import java.util.Optional;
 public interface LoanRepository extends JpaRepository<LoanEntity, Long> {
 
     long countByRutUserAndLateReturnDateIsNull(String rutUser);
-    Page<LoanEntity> findByRutUserOrderByReservationDateDesc(String rutUser, Pageable pageable);
 
     @EntityGraph(attributePaths = {"items", "items.tool"})
     List<LoanEntity> findByLateReturnDateIsNull();
@@ -35,7 +33,6 @@ public interface LoanRepository extends JpaRepository<LoanEntity, Long> {
     Page<LoanEntity> findByRutUserAndLateReturnDateIsNullAndReturnDateBefore(
             String rutUser, LocalDate today, Pageable pageable);
 
-    boolean existsByRutUserAndLateReturnDateIsNullAndItems_Tool_Id(String rutUser, Long toolId);
     boolean existsByRutUserAndReturnDateBeforeAndLateReturnDateIsNull(String rutUser, LocalDate today);
     boolean existsByRutUserAndLateFineGreaterThanAndLateFinePaidIsFalse(String rutUser, int min);
     boolean existsByRutUserAndDamagePenaltyGreaterThanAndDamagePenaltyPaidIsFalse(String rutUser, int min);

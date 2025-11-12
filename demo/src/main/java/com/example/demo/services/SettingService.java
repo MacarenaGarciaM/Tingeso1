@@ -1,4 +1,3 @@
-// src/main/java/com/example/demo/services/SettingsService.java
 package com.example.demo.services;
 
 import com.example.demo.entities.SettingEntity;

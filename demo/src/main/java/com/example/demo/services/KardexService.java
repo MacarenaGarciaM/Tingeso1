@@ -1,4 +1,3 @@
-// src/main/java/com/example/demo/services/KardexService.java
 package com.example.demo.services;
 
 import com.example.demo.entities.KardexEntity;

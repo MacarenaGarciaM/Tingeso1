@@ -18,7 +18,7 @@ public class ToolController {
 
     private final ToolService toolService;
 
-    // Crear herramienta: body = ToolEntity, user via query param
+    // body = ToolEntity, user via query param
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @PostMapping
     public ResponseEntity<?> createTool(@RequestBody ToolEntity tool,
@@ -32,7 +32,7 @@ public class ToolController {
         }
     }
 
-    // Actualizar/mover/editar: todo vía query params
+    //All types of update (move and edit), all via query params
     @PreAuthorize("hasAnyRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<?> updateTool(@PathVariable Long id,

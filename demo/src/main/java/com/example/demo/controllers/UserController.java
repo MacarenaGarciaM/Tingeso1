@@ -17,9 +17,6 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    /**
-     * Crear un nuevo usuario
-     */
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @PostMapping
     public ResponseEntity<?> createUser(@RequestBody UserEntity user) {
@@ -31,18 +28,12 @@ public class UserController {
         }
     }
 
-    /**
-     * Obtener todos los usuarios
-     */
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @GetMapping
     public ResponseEntity<List<UserEntity>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
-    /**
-     * Obtener usuario por ID
-     */
     @PreAuthorize("hasAnyRole('ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<?> getUserById(@PathVariable Long id) {
@@ -53,9 +44,6 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
-    /**
-     * Obtener usuario por RUT
-     */
     @PreAuthorize("hasAnyRole('ADMIN')")
     @GetMapping("/rut/{rut}")
     public ResponseEntity<?> getUserByRut(@PathVariable String rut) {
@@ -66,9 +54,6 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
-    /**
-     * Actualizar estado activo de un usuario
-     */
     @PreAuthorize("hasAnyRole('ADMIN')")
     @PatchMapping("/{id}/active")
     public ResponseEntity<?> updateUserActiveStatus(@PathVariable Long id, @RequestParam boolean active) {
