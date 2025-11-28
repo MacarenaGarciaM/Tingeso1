@@ -1,0 +1,11 @@
+Docker backend:
+docker run -d --name tingeso1 -p 8090:8090 `
+  -e DB_HOST=host.docker.internal `
+  -e DB_PORT=5432 `
+  -e DB_NAME=Tingeso `
+  -e DB_USER=postgres `
+  -e DB_PASSWORD=1234 `
+  -e SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://host.docker.internal:9090/realms/sisgr-realm/protocol/openid-connect/certs `
+  -e LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY=DEBUG `
+  -e LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY_OAUTH2=DEBUG `
+  macagarcia/tingeso1

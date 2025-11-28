@@ -1,0 +1,24 @@
+version: "3.8"
+services:
+  frontend:
+    container_name: payroll-frontend
+    image: macagarcia/payroll-frontend:latest
+    ports:
+      - "8070:80"
+    deploy:
+      restart_policy:
+        condition: on-failure
+
+  backend:
+    container_name: tingeso1
+    image: macagarcia/tingeso1:latest
+    ports:
+      - "8090:8090"
+    environment:
+      - DB_HOST=host.docker.internal
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://host.docker.internal:9090/realms/sisgr-realm/protocol/openid-connect/certs
+      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY=DEBUG
+      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY_OAUTH2=DEBUG
+    deploy:
+      restart_policy:
+        condition: on-failure

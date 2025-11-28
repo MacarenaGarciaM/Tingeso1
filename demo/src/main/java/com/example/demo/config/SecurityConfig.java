@@ -66,7 +66,7 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         // Allowed origins: front in dev
-        config.setAllowedOrigins(List.of("http://localhost:5173"));
+        config.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:8018", "http://localhost:8070"));
 
         //Allowed methods
         config.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));

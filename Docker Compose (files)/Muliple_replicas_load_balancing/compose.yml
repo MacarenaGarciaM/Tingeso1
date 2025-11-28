@@ -1,0 +1,80 @@
+version: "3.8"
+
+services:
+  # Frontend services
+  frontend1:
+    image: macagarcia/payroll-frontend:latest
+    restart: always
+    networks:
+      - frontend-network
+
+  frontend2:
+    image: macagarcia/payroll-frontend:latest
+    restart: always
+    networks:
+      - frontend-network
+
+  frontend3:
+    image: macagarcia/payroll-frontend:latest
+    restart: always
+    networks:
+      - frontend-network
+
+  # Backend services
+  backend1:
+    image: macagarcia/tingeso1:latest
+    restart: always
+    environment:
+      - DB_HOST=host.docker.internal
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://host.docker.internal:9090/realms/sisgr-realm/protocol/openid-connect/certs
+    networks:
+      - backend-network
+
+  backend2:
+    image: macagarcia/tingeso1:latest
+    restart: always
+    environment:
+      - DB_HOST=host.docker.internal
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://host.docker.internal:9090/realms/sisgr-realm/protocol/openid-connect/certs
+    networks:
+      - backend-network
+
+  backend3:
+    image: macagarcia/tingeso1:latest
+    environment:
+      - DB_HOST=host.docker.internal
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://host.docker.internal:9090/realms/sisgr-realm/protocol/openid-connect/certs
+    networks:
+      - backend-network
+
+  # Nginx for frontend load balancing
+  nginx-frontend:
+    image: nginx:latest
+    ports:
+      - "8070:80"
+    volumes:
+      - ./nginx-frontend.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - frontend1
+      - frontend2
+      - frontend3
+    networks:
+      - frontend-network
+
+  # Nginx for backend load balancing
+  nginx-backend:
+    image: nginx:latest
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./nginx-backend.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - backend1
+      - backend2
+      - backend3
+    networks:
+      - backend-network
+
+networks:
+  frontend-network:
+  backend-network:
