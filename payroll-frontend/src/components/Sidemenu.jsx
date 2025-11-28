@@ -41,10 +41,12 @@ export default function Sidemenu({ open, toggleDrawer }) {
 
         <Divider />
 
+        {isUserOrAdmin && (
         <ListItemButton onClick={() => navigate("/tools/names")}>
           <ListItemIcon><Construction /></ListItemIcon>
           <ListItemText primary="Herramientas (Nombre/Categoría)" />
         </ListItemButton>
+        )}
 
         {isAdmin && (
           <ListItemButton onClick={() => navigate("/tools/create")}>
@@ -60,10 +62,12 @@ export default function Sidemenu({ open, toggleDrawer }) {
             </ListItemButton>
           )}
 
+        {isUserOrAdmin && (  
         <ListItemButton onClick={() => navigate("/reports/top-tools")}>
           <ListItemIcon><AnalyticsIcon /></ListItemIcon>
           <ListItemText primary="Ranking de herramientas" />
         </ListItemButton>
+        )}
 
       </List>
 
@@ -71,10 +75,12 @@ export default function Sidemenu({ open, toggleDrawer }) {
 
       <Divider />
 
+      {isUserOrAdmin && (  
       <ListItemButton onClick={() => navigate("/loans/mine")}>
         <ListItemIcon><AssignmentIcon /></ListItemIcon>
         <ListItemText primary="Mis préstamos" />
       </ListItemButton>
+      )}
 
       <List>
         {isAdmin && (
