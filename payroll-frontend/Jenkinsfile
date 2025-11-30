@@ -1,0 +1,42 @@
+pipeline {
+    agent any
+
+    stages {
+
+        stage("Build Frontend") {
+            steps {
+                checkout scmGit(
+                    branches: [[name: '*/main']],
+                    extensions: [],
+                    userRemoteConfigs: [[url: 'https://github.com/MacarenaGarciaM/Tingeso1']]
+                )
+
+                dir("payroll-frontend") {
+                    bat "npm install"
+                    bat "npm run build"
+                }
+            }
+        }
+
+        stage("Build and Push Docker Image") {
+            steps {
+                dir("payroll-frontend") {
+                    script {
+                        withCredentials([
+                            usernamePassword(
+                                credentialsId: 'docker-credentials',
+                                usernameVariable: 'DOCKER_USER',
+                                passwordVariable: 'DOCKER_PASS'
+                            )
+                        ]) {
+                            bat 'echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin'
+                            bat "docker build -t macagarcia/payroll-frontend:latest ."
+                            bat "docker push macagarcia/payroll-frontend:latest"
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+}
