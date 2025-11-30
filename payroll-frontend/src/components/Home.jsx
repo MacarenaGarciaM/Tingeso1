@@ -6,7 +6,6 @@ import { Box, Stack, TextField, Button, Snackbar, Alert, Typography } from "@mui
 const CLP = new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 });
 
 export default function Home() {
-  // 👇 ahora también sacamos "initialized"
   const { keycloak, initialized } = useKeycloak();
   const roles = keycloak?.tokenParsed?.realm_access?.roles || [];
   const isAdmin = roles.map(r => String(r).toUpperCase()).includes("ADMIN");
@@ -26,7 +25,7 @@ export default function Home() {
       return;
     }
 
-    // 3) Usuario autenticado → ahora sí pedimos la tarifa
+    // 3) Usuario autenticado,  pedir la tarifa
     (async () => {
       try {
         const v = await getDailyRate();
@@ -40,7 +39,7 @@ export default function Home() {
         });
       }
     })();
-  }, [initialized, keycloak?.authenticated]); // 👈 se recarga cuando cambia el estado de login
+  }, [initialized, keycloak?.authenticated]); //se recarga cuando cambia el estado de login
 
   const onSave = async () => {
     try {
