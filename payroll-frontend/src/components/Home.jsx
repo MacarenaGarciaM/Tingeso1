@@ -59,7 +59,7 @@ export default function Home() {
         ToolRent: Sistema de arriendo de herramientas!
       </Typography>
       <Typography sx={{ mb:3 }}>Bienvenid@ a ToolRent.</Typography>
-      <Typography>Navega por el menú para explorar nuestras opciones.</Typography>
+      <Typography>Inicia sesión y navega por el menú para explorar nuestras opciones.</Typography>
 
       <img src="/hammer.png" alt="Martillo" style={{ width: 200, marginTop: 20 }} />
 
