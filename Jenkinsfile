@@ -47,8 +47,7 @@ extensions: [], userRemoteConfigs: [[url:
 
 withCredentials([usernamePassword(credentialsId: 'docker-credentials',
 usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                             bat 'echo %DOCKER_PASS% | docker login -u
-%DOCKER_USER% --password-stdin'
+                             bat 'echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin'
                              bat "docker build -t macagarcia/tingeso1:latest ."
                              bat "docker push macagarcia/tingeso1:latest"
                         }
