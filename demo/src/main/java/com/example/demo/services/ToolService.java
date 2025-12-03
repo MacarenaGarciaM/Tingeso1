@@ -26,7 +26,7 @@ public class ToolService {
             Arrays.asList("Disponible", "Prestada", "En reparación", "Dada de baja");
 
     public ToolEntity saveTool(ToolEntity tool, UserEntity rutUser) {
-        // Validaciones básicas
+        // Basic validations
         if (tool.getName() == null || tool.getName().trim().isEmpty()) {
             throw new IllegalArgumentException("Tool name is required.");
         }
@@ -46,7 +46,7 @@ public class ToolService {
             throw new IllegalArgumentException("Initial state is not valid.");
         }
 
-        // Buscar si ya existe una herramienta con el mismo nombre y categoría
+        // Check if a tool with the same name and category already exists
         List<ToolEntity> existing = toolRepository
                 .findByNameAndCategoryAndInitialState(tool.getName(), tool.getCategory(), tool.getInitialState());
 
@@ -70,7 +70,7 @@ public class ToolService {
             savedTool = toolRepository.save(newTool);
         }
 
-        // Registrar movimiento en kardex (solo la cantidad ingresada, no el acumulado)
+        // Record movement in kardex (only the amount entered, not the total)
         KardexEntity kardex = new KardexEntity();
         kardex.setTool(savedTool);
         kardex.setRutUser(rutUser.getRut()); // Usuario autenticado aquí
@@ -93,17 +93,17 @@ public class ToolService {
                 throw new IllegalArgumentException("Invalid state: " + newState);
             }
 
-            // Caso 1: Disponible -> Otro estado
+            // Case 1: Disponible -> another state
             if (tool.getInitialState().equals("Disponible") && !newState.equals("Disponible")) {
                 if (tool.getAmount() <= 0) {
                     throw new IllegalArgumentException("No hay stock disponible para mover a otro estado.");
                 }
 
-                // Reducir en Disponible
+                // Reduce in Disponible
                 tool.setAmount(tool.getAmount() - 1);
                 toolRepository.save(tool);
 
-                // Buscar si ya existe herramienta con mismo estado
+                // Check if a tool with the same status already exists.
                 List<ToolEntity> existingTools = toolRepository.findByNameAndCategory(tool.getName(), tool.getCategory());
                 Optional<ToolEntity> sameStateTool = existingTools.stream()
                         .filter(t -> newState.equals(t.getInitialState()))
@@ -138,17 +138,17 @@ public class ToolService {
                 return savedTargetTool;
             }
 
-            // Caso 2: Otro estado -> Disponible
+            // Case 2: another state -> Disponible
             if (!tool.getInitialState().equals("Disponible") && newState.equals("Disponible")) {
                 if (tool.getAmount() <= 0) {
                     throw new IllegalArgumentException("No hay stock en este estado para devolver a Disponible.");
                 }
 
-                // Reducir del estado actual
+                // Reduce actual state
                 tool.setAmount(tool.getAmount() - 1);
                 toolRepository.save(tool);
 
-                // Buscar la herramienta Disponible
+                // search Disponible tool
                 List<ToolEntity> existingTools = toolRepository.findByNameAndCategory(tool.getName(), tool.getCategory());
                 Optional<ToolEntity> disponibleTool = existingTools.stream()
                         .filter(t -> "Disponible".equals(t.getInitialState()))
@@ -183,18 +183,18 @@ public class ToolService {
                 return savedTargetTool;
             }
 
-            // Caso 3: estado A (≠ Disponible) → estado B (≠ Disponible)
+            // Case 3: state A (≠ Disponible) → state B (≠ Disponible)
             if (!tool.getInitialState().equals("Disponible") && !newState.equals("Disponible")) {
 
                 if (tool.getAmount() <= 0) {
                     throw new IllegalArgumentException("No hay stock en este estado para mover.");
                 }
 
-                // 1) Restar del bucket origen
+                // 1) Sustract from origin bucket
                 tool.setAmount(tool.getAmount() - 1);
                 toolRepository.save(tool);
 
-                // 2) Buscar/crear bucket destino (mismo name+category+reposition, estado = newState)
+                // 2) Search/create destination bucket (same name+category+reposition, state = newState)
                 Optional<ToolEntity> optTarget =
                         toolRepository.findFirstByNameAndCategoryAndInitialState(
                                 tool.getName(), tool.getCategory(), newState);
@@ -205,7 +205,7 @@ public class ToolService {
                         tool.getCategory(),
                         newState,
                         tool.getRepositionValue(),
-                        false,      // available solo en "Disponible"
+                        false,      // available only in "Disponible"
                         0
                 ));
                 target.setAmount(target.getAmount() + 1);
@@ -249,7 +249,7 @@ public class ToolService {
     public List<NameCategory> getAllNamesWithCategory() {
         List<ToolEntity> tools = toolRepository.findAll();
 
-        // Usamos un LinkedHashMap para mantener orden de inserción y evitar duplicados
+        // Uses a LinkedHashMap to maintain insertion order and avoid duplicates
         Map<String, NameCategory> unique = new LinkedHashMap<>();
         for (ToolEntity t : tools) {
             if (t.getName() == null || t.getCategory() == null) continue;
@@ -264,14 +264,12 @@ public class ToolService {
 
     public List<ToolEntity> listByState(String state) {
         if (state == null || state.isBlank()) throw new IllegalArgumentException("state is required");
-        // Si quieres sólo con stock >0 para cualquier estado:
         if ("Disponible".equalsIgnoreCase(state)) {
             return toolRepository.findAllByInitialStateIgnoreCaseAndAmountGreaterThan(state, 0);
         }
         return toolRepository.findAllByInitialStateIgnoreCase(state);
     }
 
-    // POJO simple para la respuesta
     @Data
     @AllArgsConstructor
     public static class NameCategory {

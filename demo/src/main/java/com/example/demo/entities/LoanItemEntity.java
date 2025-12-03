@@ -21,19 +21,18 @@ public class LoanItemEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Cabecera
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "loan_id", nullable = false)
     @JsonBackReference
     private LoanEntity loan;
 
-    // Herramienta (referencia)
+    //tool (reference)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tool_id", nullable = false)
     @JsonIgnoreProperties({"items"})
     private ToolEntity tool;
 
-    // Snapshot del nombre (opcional pero útil si el nombre cambia)
     private String toolNameSnapshot;
 
 }

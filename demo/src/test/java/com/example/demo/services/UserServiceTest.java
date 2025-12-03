@@ -41,7 +41,7 @@ class UserServiceTest {
                 .build();
     }
 
-    // ───────────────── provisionFromJwt: UPDATE por keycloakId ─────────────────
+    //provisionFromJwt: UPDATE por keycloakId
 
     @Test
     void provisionFromJwt_updatesExistingByKeycloakId_setsAdminRutPhone_andSaves() {
@@ -74,7 +74,7 @@ class UserServiceTest {
         verify(userRepository).save(out);
     }
 
-    // ─────────────── provisionFromJwt: adopta por email si no hay KC ───────────────
+    // provisionFromJwt: adopt by email if there is no KC
 
     @Test
     void provisionFromJwt_adoptsExistingByEmail_whenNoKeycloakIdYet() {
@@ -108,7 +108,7 @@ class UserServiceTest {
         verify(userRepository).save(out);
     }
 
-    // ───────────────── provisionFromJwt: crea nuevo ─────────────────
+    // provisionFromJwt: create new
 
     @Test
     void provisionFromJwt_createsNew_whenNoKcAndNoEmailMatch() {
@@ -156,7 +156,7 @@ class UserServiceTest {
         verify(userRepository, never()).save(any());
     }
 
-    // ───────────────── saveUser ─────────────────
+    // saveUser
 
     @Test
     void saveUser_fails_whenEmailExists() {
@@ -179,7 +179,7 @@ class UserServiceTest {
         given(userRepository.findByRut("11111111-1")).willReturn(new UserEntity());
 
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> userService.saveUser(input));
-        // mensaje exacto del service: "User with this RUT already exists."
+        // exact message for service: "User with this RUT already exists."
         assertTrue(ex.getMessage().toLowerCase().contains("rut already exists"));
         verify(userRepository, never()).save(any());
     }
@@ -191,7 +191,7 @@ class UserServiceTest {
         input.setRut("11.111.111-1");
 
         given(userRepository.findByEmail("ok2@example.com")).willReturn(null);
-        // no importa el findByRut porque falla antes por tu lógica actual
+        // "findByRut" method doesn't matter because it will fail before your current logic is implemented.
         given(userRepository.findByRut(anyString())).willReturn(null);
 
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> userService.saveUser(input));
@@ -221,7 +221,7 @@ class UserServiceTest {
         assertEquals(0, out.getAmountOfLoans());
     }
 
-    // ───────────────── updateActive / getters ─────────────────
+    //updateActive / getters
 
     @Test
     void updateActive_setsAndPersists() {
@@ -246,12 +246,12 @@ class UserServiceTest {
         assertNotNull(userService.getUserByRut("11.111.111-1"));
     }
 
-    // ───────────────── recomputeActiveStatus ─────────────────
+    // recomputeActiveStatus
 
     @Test
     void recomputeActiveStatus_setsInactive_whenAnyDebtOrOverdue() {
         UserEntity u = new UserEntity(); u.setRut("11111111-1"); u.setActive(true);
-        // la normalización convierte "11.111.111-1" -> "11111111-1"
+        // "11.111.111-1" -> "11111111-1"
         given(userRepository.findByRut("11111111-1")).willReturn(u);
 
         given(loanRepository.existsByRutUserAndReturnDateBeforeAndLateReturnDateIsNull(eq("11111111-1"), any()))

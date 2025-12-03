@@ -24,7 +24,7 @@ class SettingServiceTest {
     @InjectMocks
     SettingService service;
 
-    // --- getDailyRentPrice() ---
+    //getDailyRentPrice()
 
     @Test
     void getDailyRentPrice_returnsDefault_whenNotFound() {
@@ -38,18 +38,17 @@ class SettingServiceTest {
 
     @Test
     void getDailyRentPrice_returnsDefault_evenWhenEntityPresent_becauseParsesIdField() {
-        // Con el código actual, se intenta parsear s.getPrice() (que es la clave "daily_rent_price"),
-        // así que siempre caerá en default aunque text sea numérico.
+
         given(repo.findById(SettingService.daily_key))
                 .willReturn(Optional.of(new SettingEntity(SettingService.daily_key, "3700")));
 
         int val = service.getDailyRentPrice();
 
-        assertEquals(2500, val); // sigue devolviendo default
+        assertEquals(2500, val);
         verify(repo).findById(SettingService.daily_key);
     }
 
-    // --- setDailyRentPrice(int) ---
+    //setDailyRentPrice(int)
 
     @Test
     void setDailyRentPrice_savesAndReturnsValue() {
@@ -61,7 +60,7 @@ class SettingServiceTest {
 
         verify(repo).save(captor.capture());
         SettingEntity saved = captor.getValue();
-        // En tu entidad actual: price = ID (clave), text = valor
+        // price = ID , text = value
         assertEquals(SettingService.daily_key, saved.getPrice());
         assertEquals("4200", saved.getText());
     }

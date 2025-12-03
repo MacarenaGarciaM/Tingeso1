@@ -17,7 +17,7 @@ public class UserService {
     @Autowired private UserRepository userRepository;
     @Autowired private LoanRepository loanRepository;
 
-    // ======= APROVISIONAMIENTO DESDE JWT (lee rut/phone si vienen en el token) =======
+    // PROVISIONING FROM JWT (reads RUT/phone number if they are in the token)
     public UserEntity provisionFromJwt(Jwt jwt) {
         String kcId  = jwt.getSubject(); // sub
         String email = jwt.getClaimAsString("email");
@@ -34,22 +34,21 @@ public class UserService {
             isAdmin = false;
         }
 
-        // Claims opcionales que debes exponer vía mappers en Keycloak
+        //Optional claims that expose via mappers in Keycloak
         String rutClaim   = jwt.getClaimAsString("rut");
         String phoneClaim = jwt.getClaimAsString("phone");
 
         String finalName = name;
         String finalName1 = name;
         return userRepository.findByKeycloakId(kcId).map(u -> {
-            // --- UPDATE ---
             u.setEmail(email);
             u.setName(finalName1);
             u.setAdmin(isAdmin);
 
-            // RUT: si viene en token y aún no teníamos uno guardado
+
             if (rutClaim != null && !rutClaim.isBlank() && u.getRut() == null) {
                 String normalized = normalizeRut(rutClaim);
-                // unicidad: si ya existe en otro usuario, error
+                // uniqueness: if it already exists for another user, error
                 UserEntity other = userRepository.findByRut(normalized);
                 if (other != null && !other.getId().equals(u.getId())) {
                     throw new IllegalArgumentException("RUT ya registrado por otro usuario");
@@ -57,7 +56,7 @@ public class UserService {
                 u.setRut(normalized);
             }
 
-            // Teléfono: si viene, intenta parsear
+            // Phone: If it comes, try to parse
             if (phoneClaim != null && !phoneClaim.isBlank()) {
                 Integer phoneParsed = tryParsePhone(phoneClaim);
                 if (phoneParsed != null) {
@@ -67,15 +66,15 @@ public class UserService {
 
             return userRepository.save(u);
         }).orElseGet(() -> {
-            // --- CREATE ---
-            // Si ya existía por email y aún no tiene keycloakId, lo adoptamos
+            //Create
+            //If it already existed via email and doesn't yet have a keycloakId, we'll adopt it.
             UserEntity existingByEmail = userRepository.findByEmail(email);
             if (existingByEmail != null && (existingByEmail.getKeycloakId() == null || existingByEmail.getKeycloakId().isBlank())) {
                 existingByEmail.setKeycloakId(kcId);
                 existingByEmail.setName(finalName);
                 existingByEmail.setAdmin(isAdmin);
 
-                // RUT desde token (opcional)
+                // RUT from token (optional)
                 if (rutClaim != null && !rutClaim.isBlank() && existingByEmail.getRut() == null) {
                     String normalized = normalizeRut(rutClaim);
                     UserEntity other = userRepository.findByRut(normalized);
@@ -85,7 +84,7 @@ public class UserService {
                     existingByEmail.setRut(normalized);
                 }
 
-                // Teléfono desde token (opcional)
+                // phone from token (optional)
                 if (phoneClaim != null && !phoneClaim.isBlank()) {
                     Integer phoneParsed = tryParsePhone(phoneClaim);
                     if (phoneParsed != null) {
@@ -95,7 +94,7 @@ public class UserService {
                 return userRepository.save(existingByEmail);
             }
 
-            // Crear nuevo
+            // Create new
             UserEntity u = new UserEntity();
             u.setKeycloakId(kcId);
             u.setEmail(email);
@@ -104,7 +103,7 @@ public class UserService {
             u.setActive(true);
             u.setAmountOfLoans(0);
 
-            // RUT si vino en token
+            // RUT did came in token
             if (rutClaim != null && !rutClaim.isBlank()) {
                 String normalized = normalizeRut(rutClaim);
                 // unicidad
@@ -114,7 +113,7 @@ public class UserService {
                 u.setRut(normalized);
             }
 
-            // Teléfono si vino en token
+            // Phone did came in token
             if (phoneClaim != null && !phoneClaim.isBlank()) {
                 Integer phoneParsed = tryParsePhone(phoneClaim);
                 if (phoneParsed != null) {
@@ -126,7 +125,7 @@ public class UserService {
         });
     }
 
-    // ======= CREACIÓN MANUAL (si la mantienes) =======
+    // Manual Creation
     public UserEntity saveUser(UserEntity user) {
         UserEntity existingUserEmail = userRepository.findByEmail(user.getEmail());
         UserEntity existingUserRut = user.getRut() == null ? null : userRepository.findByRut(normalizeRut(user.getRut()));
@@ -144,10 +143,10 @@ public class UserService {
 
         UserEntity newUser = new UserEntity(
                 null,
-                user.getKeycloakId(),  // nulo si es creación manual sin KC
+                user.getKeycloakId(),
                 user.getName(),
                 user.getEmail(),
-                null,                  // password ignorado (Transient)
+                null,
                 normalizedRut,
                 user.getPhone(),
                 user.isAdmin(),
@@ -166,7 +165,7 @@ public class UserService {
     public UserEntity getUserById(Long id) { return userRepository.findById(id).orElse(null); }
     public UserEntity getUserByRut(String rut) { return userRepository.findByRut(rut == null ? null : normalizeRut(rut)); }
 
-    // ======= Mantienes tu lógica de estado activo =======
+
     public UserEntity recomputeActiveStatus(String rutUser) {
         String normalizedRut = rutUser == null ? null : normalizeRut(rutUser);
         UserEntity u = userRepository.findByRut(normalizedRut);
@@ -188,9 +187,9 @@ public class UserService {
         return userRepository.save(u);
     }
 
-    // ======= Helpers RUT/phone =======
+    // Helpers RUT/phone
 
-    /** Normaliza: quita puntos y espacios, DV mayúscula. Si no tiene guion, lo inserta antes del último dígito. */
+
     private String normalizeRut(String rut) {
         if (rut == null) return null;
         String raw = rut.replace(".", "").replace(" ", "").toUpperCase();
@@ -202,10 +201,9 @@ public class UserService {
     }
 
 
-    /** Intenta parsear teléfono a entero; devuelve null si no puede. */
+
     private Integer tryParsePhone(String phone) {
         try {
-            // elimina espacios y signos comunes
             String digits = phone.replaceAll("[^0-9]", "");
             if (digits.isEmpty()) return null;
             return Integer.parseInt(digits);

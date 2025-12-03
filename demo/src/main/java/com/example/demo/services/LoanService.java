@@ -47,19 +47,18 @@ public class LoanService {
         UserEntity customer = userRepository.findByRut(rutUser);
         if (customer == null) throw new IllegalArgumentException("User (rut) not found: " + rutUser);
 
-        // Bloqueo por vencidos/multas impagas
+        //  Blocked due to overdue payments/unpaid fines
         userService.recomputeActiveStatus(rutUser);
         UserEntity refreshed = userRepository.findByRut(rutUser);
         if (refreshed != null && !refreshed.isActive()) {
             throw new IllegalArgumentException("User is inactive due to overdue loans or unpaid fines.");
         }
 
-        // Máximo 5 préstamos activos
+        // Max 5 active loans
         long activeCount = loanRepository.countByRutUserAndLateReturnDateIsNull(rutUser);
         if (activeCount >= 5)
             throw new IllegalArgumentException("User already has 5 active loans.");
 
-        // Cabecera
         LoanEntity loan = new LoanEntity();
         loan.setRutUser(customer.getRut());
         loan.setReservationDate(reservationDate);
@@ -68,10 +67,10 @@ public class LoanService {
         loan.setLateFine(0);
         loan.setDamagePenalty(0);
 
-        // Calcular total (mínimo 1 día)
+        //Calculate total (1 dia min)
         loan.setTotal(calculateLoanTotal(reservationDate, returnDate));
 
-        // Para kardex (RUT del cliente)
+        //For the kardex (client rut)
         UserEntity kardexUser = new UserEntity();
         kardexUser.setRut(customer.getRut());
 
@@ -87,7 +86,8 @@ public class LoanService {
             if (qty <= 0) throw new IllegalArgumentException("quantity must be >= 1");
             if (qty != 1) throw new IllegalArgumentException("Only one unit per tool is allowed.");
 
-            // Cargamos SOLO UNA VEZ la herramienta "Disponible"
+
+            // load the "Disponible" tool ONLY ONCE
             ToolEntity disponibleTool = toolRepository.findById(it.toolId)
                     .orElseThrow(() -> new IllegalArgumentException("Tool not found (id=" + it.toolId + ")"));
 
@@ -97,8 +97,8 @@ public class LoanService {
                 throw new IllegalArgumentException("Not enough stock for tool id=" + it.toolId +
                         ". Available: " + disponibleTool.getAmount());
 
-            // === Validación de "misma herramienta ya arrendada por el mismo usuario" ===
-            // Busca ids de herramientas en estado PRESTADA con el mismo nombre+categoría
+            //Validation of "same tool already rented by the same user"
+            // Search for tool IDs in "Prestada" status with the same name and category
             List<Long> prestadaIds = toolRepository.findIdsByNameCategoryAndState(
                     disponibleTool.getName(), disponibleTool.getCategory(), "Prestada");
 
@@ -111,13 +111,13 @@ public class LoanService {
                     );
                 }
             }
-            // ===========================================================================
 
-            // Mover Disponible -> Prestada y OBTENER el registro/bucket en "Prestada"
+
+            // Move Disponible -> Prestada y get in the bucket in "Prestada"
             ToolEntity prestadaTool =
                     toolService.updateTool(it.toolId, "Prestada", null, null, kardexUser);
 
-            // Guardar en loan_item el ID de la herramienta "Prestada"
+            // Save the id of "Prestada" in loan_item
             LoanItemEntity line = new LoanItemEntity();
             line.setTool(prestadaTool);
             line.setToolNameSnapshot(prestadaTool.getName());
@@ -126,7 +126,8 @@ public class LoanService {
 
         LoanEntity saved = loanRepository.save(loan);
 
-        // Contador de préstamos activos +1 y recomputar 'active'
+
+        //Active loan counter +1 and recalculate "active"
         customer.setAmountOfLoans(customer.getAmountOfLoans() + 1);
         userRepository.save(customer);
         userService.recomputeActiveStatus(rutUser);
@@ -138,10 +139,10 @@ public class LoanService {
     public LoanEntity returnLoan(
             Long loanId,
             LocalDate actualReturnDate,
-            Set<Long> damagedToolIds,          // IDs de herramientas marcadas dañadas
-            Set<Long> irreparableToolIds,      // IDs de herramientas irrecuperables
+            Set<Long> damagedToolIds,
+            Set<Long> irreparableToolIds,
             Integer finePerDay,
-            Map<Long, Integer> repairCosts     // 👈 NUEVO: costo por reparación de dañadas
+            Map<Long, Integer> repairCosts
     ) {
         if (actualReturnDate == null) throw new IllegalArgumentException("actualReturnDate is required.");
 
@@ -154,13 +155,13 @@ public class LoanService {
         irreparableToolIds = (irreparableToolIds == null) ? Collections.emptySet() : irreparableToolIds;
         repairCosts        = (repairCosts == null) ? Collections.emptyMap() : repairCosts;
 
-        // no superposición
+        // no superposition
         Set<Long> inter = new HashSet<>(damagedToolIds);
         inter.retainAll(irreparableToolIds);
         if (!inter.isEmpty())
             throw new IllegalArgumentException("A tool cannot be both damaged and irreparable: " + inter);
 
-        // validar que pertenecen al préstamo
+        //Validate they belong to the loan
         Set<Long> loanToolIds = new HashSet<>();
         for (LoanItemEntity li : loan.getItems()) loanToolIds.add(li.getTool().getId());
         if (!loanToolIds.containsAll(damagedToolIds)) {
@@ -232,17 +233,17 @@ public class LoanService {
 
         LoanEntity saved = loanRepository.save(loan);
 
-        // Recalcular 'active' del dueño del préstamo
+        // Recalculate 'active'
         userService.recomputeActiveStatus(loan.getRutUser());
         return saved;
     }
 
-    // ==== Helpers ====
+    //Helpers
 
     private int calculateLoanTotal(LocalDate reservationDate, LocalDate returnDate) {
         long days = ChronoUnit.DAYS.between(reservationDate, returnDate);
         if (days < 1) days = 1;
-        int daily = settingService.getDailyRentPrice(); // 👈 lee de BD
+        int daily = settingService.getDailyRentPrice(); // reads BD
         return (int) (days * daily);
     }
 
@@ -281,7 +282,7 @@ public class LoanService {
     }
 
 
-    // Body para creación (sin DTOs externos)
+    // Body for creation
     public static class Item {
         public Long toolId;
         public Integer quantity;

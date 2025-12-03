@@ -1,4 +1,3 @@
-// src/main/java/com/example/demo/controllers/SettingsController.java
 package com.example.demo.controllers;
 
 import com.example.demo.services.SettingService;

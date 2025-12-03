@@ -34,17 +34,17 @@ class ToolServiceTest {
         user.setRut("11.111.111-1");
     }
 
-    // ───────────────────────── saveTool ─────────────────────────
+    //saveTool
 
     @Test
     void saveTool_createsNewBucket_andWritesKardex() {
         ToolEntity input = tool(null, "Taladro", "Elec", "Disponible", 50000, true, 3);
 
-        // no hay bucket existente con mismo name-category-state
+        // no  bucket with same name-category-state
         given(toolRepository.findByNameAndCategoryAndInitialState("Taladro", "Elec", "Disponible"))
                 .willReturn(List.of());
 
-        // guardará un NEW ToolEntity; simulamos que JPA asigna id=101
+        // NEW ToolEntity; simulate JPA asigns id=101
         given(toolRepository.save(any(ToolEntity.class))).willAnswer(inv -> {
             ToolEntity t = inv.getArgument(0);
             if (t.getId() == null) t.setId(101L);
@@ -56,7 +56,7 @@ class ToolServiceTest {
         assertEquals(101L, out.getId());
         assertEquals("Taladro", out.getName());
         assertEquals("Disponible", out.getInitialState());
-        // kardex escrito con la cantidad ingresada (3)
+        // kardex
         verify(kardexRepository).save(argThat(k ->
                 k.getTool().getId().equals(101L)
                         && "Ingreso".equals(k.getType())
@@ -67,13 +67,13 @@ class ToolServiceTest {
 
     @Test
     void saveTool_mergesIntoExistingBucket_andWritesKardex() {
-        // existe bucket Disponible Taladro/Elec con amount=5
+        // exists bucket Disponible Taladro/Elec with amount=5
         ToolEntity existing = tool(10L, "Taladro", "Elec", "Disponible", 30000, true, 5);
 
         given(toolRepository.findByNameAndCategoryAndInitialState("Taladro", "Elec", "Disponible"))
                 .willReturn(List.of(existing));
 
-        // input agrega 2 unidades y actualiza repositionValue
+        // input adds 2 units and update repositionValue
         ToolEntity input = tool(null, "Taladro", "Elec", "Disponible", 50000, true, 2);
 
         given(toolRepository.save(existing)).willAnswer(inv -> inv.getArgument(0));
@@ -113,13 +113,13 @@ class ToolServiceTest {
         ToolEntity t5 = tool(null, "Name", "Cat", null, 10, true, 1);
         assertThrows(IllegalArgumentException.class, () -> toolService.saveTool(t5, user));
 
-        // initialState inválido
+        // initialState invalid
         ToolEntity t6 = tool(null, "Name", "Cat", "INVALID", 10, true, 1);
         assertThrows(IllegalArgumentException.class, () -> toolService.saveTool(t6, user));
     }
 
 
-    // ──────────────────────── updateTool ────────────────────────
+    //updateTool
 
     @Test
     void updateTool_fails_whenNotFound() {
@@ -130,26 +130,26 @@ class ToolServiceTest {
 
     @Test
     void updateTool_disponibleToOther_createsOrMerges_andWritesKardex() {
-        // Origen: bucket Disponible con amount=2
+        // Origin: bucket Available with amount=2
         ToolEntity origen = tool(1L, "Taladro", "Elec", "Disponible", 50000, true, 2);
         given(toolRepository.findById(1L)).willReturn(Optional.of(origen));
 
-        // repository para buscar todos con el mismo name/category
+        // repository to search for all with the same name/category
         ToolEntity yaPrestada = tool(20L, "Taladro", "Elec", "Prestada", 50000, false, 4);
         given(toolRepository.findByNameAndCategory("Taladro", "Elec"))
                 .willReturn(List.of(origen, yaPrestada));
 
-        // save para origen (resta 1) y para target (suma 1)
+        // save for origin (subtract 1) and for target (add 1)
         given(toolRepository.save(origen)).willAnswer(inv -> inv.getArgument(0));
         given(toolRepository.save(yaPrestada)).willAnswer(inv -> inv.getArgument(0));
 
         ToolEntity out = toolService.updateTool(1L, "Prestada", null, null, user);
 
-        // Origen -1
+        // Origin -1
         assertEquals(1, origen.getAmount());
-        // Destino +1
+        // Destination +1
         assertEquals(5, yaPrestada.getAmount());
-        // Retorno es el destino
+        // Return is the destination
         assertEquals(20L, out.getId());
 
         verify(kardexRepository).save(argThat(k ->
@@ -164,11 +164,11 @@ class ToolServiceTest {
         ToolEntity origen = tool(1L, "Taladro", "Elec", "Disponible", 50000, true, 1);
         given(toolRepository.findById(1L)).willReturn(Optional.of(origen));
 
-        // no existe bucket Prestada aún
+
         given(toolRepository.findByNameAndCategory("Taladro", "Elec"))
                 .willReturn(List.of(origen));
 
-        // guardará origen y luego creará destino
+
         given(toolRepository.save(any(ToolEntity.class))).willAnswer(inv -> {
             ToolEntity t = inv.getArgument(0);
             if (t.getId() == null) t.setId(99L); // id del nuevo bucket
@@ -211,11 +211,10 @@ class ToolServiceTest {
         ToolEntity origen = tool(50L, "Llave", "Manual", "En reparación", 15000, false, 2);
         given(toolRepository.findById(50L)).willReturn(Optional.of(origen));
 
-        // destino (Dada de baja) no existe aún al consultar findFirst...
+
         given(toolRepository.findFirstByNameAndCategoryAndInitialState("Llave", "Manual", "Dada de baja"))
                 .willReturn(Optional.empty());
 
-        // guardado de origen y destino nuevo
         given(toolRepository.save(any(ToolEntity.class))).willAnswer(inv -> {
             ToolEntity t = inv.getArgument(0);
             if (t.getId() == null) t.setId(77L);
@@ -224,9 +223,9 @@ class ToolServiceTest {
 
         ToolEntity out = toolService.updateTool(50L, "Dada de baja", null, null, user);
 
-        // origen -1
+        // origin -1
         assertEquals(1, origen.getAmount());
-        // destino nuevo con +1
+        // new destination +1
         assertEquals(77L, out.getId());
         assertEquals("Dada de baja", out.getInitialState());
         assertEquals(1, out.getAmount());
@@ -298,7 +297,7 @@ class ToolServiceTest {
                 () -> toolService.updateTool(3L, "Dada de baja", null, null, user));
     }
 
-    // ───────────────────────── getToolByName ─────────────────────────
+    // getToolByName
 
     @Test
     void getToolByName_ok() {
@@ -317,7 +316,7 @@ class ToolServiceTest {
         assertThrows(IllegalArgumentException.class, () -> toolService.getToolByName("Inexistente"));
     }
 
-    // ──────────────────────── getAllNamesWithCategory ────────────────────────
+    //  getAllNamesWithCategory
 
     @Test
     void getAllNamesWithCategory_uniqueAndStableOrder() {
@@ -338,7 +337,7 @@ class ToolServiceTest {
         assertEquals("Manual", out.get(1).getCategory());
     }
 
-    // ──────────────────────── listAvailable / listByState ────────────────────────
+    // listAvailable / listByState
 
     @Test
     void listAvailable_delegatesCorrectly() {
@@ -363,7 +362,7 @@ class ToolServiceTest {
         verify(toolRepository).findAllByInitialStateIgnoreCase("Prestada");
     }
 
-    // ───────────────────────── helpers ─────────────────────────
+    //helpers
 
     private static ToolEntity tool(Long id, String name, String cat, String state,
                                    Integer repValue, boolean available, int amount) {

@@ -21,29 +21,29 @@ public class LoanEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Cliente
+    // Client
     private String rutUser;
 
-    // Fechas
-    private LocalDate reservationDate;   // fecha de entrega
-    private LocalDate returnDate;        // fecha pactada devolución
-    private LocalDate lateReturnDate;    // fecha real devolución (null=activo)
+    // Dates
+    private LocalDate reservationDate;
+    private LocalDate returnDate;
+    private LocalDate lateReturnDate;
 
-    // Monto base arriendo (se calcula al crear)
+    // first amount of rent
     private int total = 0;
 
-    // Multas/penalizaciones
-    private int lateFine = 0;            // multa por atraso
-    private int damagePenalty = 0;       // penalización por daños
+    //fines
+    private int lateFine = 0;
+    private int damagePenalty = 0;
 
-    // NUEVO: estado de pago de multas
+    // state of fine payments
     private boolean lateFinePaid = false;
     private boolean damagePenaltyPaid = false;
 
-    // Cantidad de TIPOS de herramientas en el préstamo (tamaño de items)
+    //Amount of types of tools in the loan
     private Integer amountOfTools = 0;
 
-    // Ítems del préstamo
+    // Items of the loan
     @OneToMany(mappedBy = "loan", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<LoanItemEntity> items = new ArrayList<>();

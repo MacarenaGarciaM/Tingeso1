@@ -26,7 +26,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                .cors(cors -> {}) // usa el bean corsConfigurationSource()
+                .cors(cors -> {}) // uses bean corsConfigurationSource()
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // preflight CORS
                         .requestMatchers("/public/**").permitAll()
@@ -52,7 +52,7 @@ public class SecurityConfig {
             if (realmAccess != null && realmAccess.get("roles") instanceof List<?>) {
                 List<?> roles = (List<?>) realmAccess.get("roles");
                 roles.forEach(r -> {
-                    String role = String.valueOf(r).toUpperCase(); // 👈 normaliza
+                    String role = String.valueOf(r).toUpperCase();
                     authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
                 });
             }

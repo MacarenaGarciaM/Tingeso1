@@ -17,7 +17,7 @@ public interface ToolRepository extends JpaRepository<ToolEntity, Long> {
     List<ToolEntity> findByName(String name);
     List<ToolEntity> findAllByInitialStateIgnoreCaseAndAmountGreaterThan(String initialState, int amount);
 
-    //Sin query me sale un error extraño :(
+
     @Query("""
       select t.id
       from ToolEntity t

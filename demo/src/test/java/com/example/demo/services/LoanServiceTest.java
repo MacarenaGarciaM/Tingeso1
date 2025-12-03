@@ -47,33 +47,33 @@ class LoanServiceTest {
         user.setAmountOfLoans(0);
     }
 
-    // ---------- createLoan: éxito ----------
+    // createLoan: success
     @Test
     void createLoan_ok() {
         LocalDate res = LocalDate.of(2025, 10, 1);
         LocalDate ret = LocalDate.of(2025, 10, 04); // 3 días
 
-        // user encontrado, y tras recompute sigue activo
+        // User found, and after recomputation still active
         given(userRepository.findByRut("11.111.111-1"))
                 .willReturn(user)        // 1ra consulta
                 .willReturn(user);       // 2da consulta (refreshed)
-        // no supera máximo de 5
+        // does not exceed maximum of 5
         given(loanRepository.countByRutUserAndLateReturnDateIsNull("11.111.111-1")).willReturn(0L);
-        // precio diario
+        // daily price
         given(settingService.getDailyRentPrice()).willReturn(2000);
 
-        // tool "Disponible" con stock suficiente
+        // tool "Disponible" with enough stock
         ToolEntity disponible = tool(100L, "Taladro", "Elec", "Disponible", 3, 50000, true);
         given(toolRepository.findById(100L)).willReturn(Optional.of(disponible));
-        // no hay “Prestada” del mismo nombre/categoría
+        // no “Prestada” of the same name/category
         given(toolRepository.findIdsByNameCategoryAndState("Taladro", "Elec", "Prestada"))
                 .willReturn(List.of());
-        // update a Prestada devuelve la entidad en Prestada (id puede ser mismo o bucket distinto)
+        // update to Prestada returns the entity in Borrowed (id can be the same or a different bucket)
         ToolEntity prestada = tool(200L, "Taladro", "Elec", "Prestada", 3, 50000, false);
         given(toolService.updateTool(eq(100L), eq("Prestada"), isNull(), isNull(), org.mockito.ArgumentMatchers.any(UserEntity.class)))
                 .willReturn(prestada);
 
-        // save devuelve la misma entidad con id asignado
+        // save returns the same entity with assigned id
         ArgumentCaptor<LoanEntity> cap = ArgumentCaptor.forClass(LoanEntity.class);
         given(loanRepository.save(cap.capture())).willAnswer(inv -> {
             LoanEntity le = cap.getValue();
@@ -90,18 +90,18 @@ class LoanServiceTest {
         assertEquals("11.111.111-1", out.getRutUser());
         assertEquals(res, out.getReservationDate());
         assertEquals(ret, out.getReturnDate());
-        // total = 3 días * 2000
+        // total = 3 days * 2000
         assertEquals(6000, out.getTotal());
-        // item agregado con tool prestada
+        // item added with tool "prestada"
         assertThat(out.getItems(), hasSize(1));
         assertEquals(200L, out.getItems().get(0).getTool().getId());
 
-        // incrementó contador de préstamos del usuario y recompute llamado
+        //increased user loan counter and recompute called
         verify(userRepository).save(argThat(u -> u.getAmountOfLoans() == 1));
         verify(userService, times(2)).recomputeActiveStatus("11.111.111-1");
     }
 
-    // ---------- createLoan: validaciones ----------
+    //createLoan: validations
     @Test
     void createLoan_fails_onNullDates() {
         assertThrows(IllegalArgumentException.class,
@@ -177,20 +177,20 @@ class LoanServiceTest {
         given(userRepository.findByRut(anyString())).willReturn(user).willReturn(user);
         given(loanRepository.countByRutUserAndLateReturnDateIsNull(anyString())).willReturn(0L);
 
-        // no encontrada
+        // not found
         given(toolRepository.findById(1L)).willReturn(Optional.empty());
         assertThrows(IllegalArgumentException.class,
                 () -> loanService.createLoan("11", LocalDate.now(), LocalDate.now().plusDays(1),
                         List.of(oneItem(1L))));
 
-        // encontrada pero no "Disponible"
+        // found but not "Disponible"
         ToolEntity tWrong = tool(2L,"Taladro","Elec","Prestada",1,0,true);
         given(toolRepository.findById(2L)).willReturn(Optional.of(tWrong));
         assertThrows(IllegalArgumentException.class,
                 () -> loanService.createLoan("11", LocalDate.now(), LocalDate.now().plusDays(1),
                         List.of(oneItem(2L))));
 
-        // encontrada Disponible pero sin stock
+        // found Disponible but no stock
         ToolEntity tNoStock = tool(3L,"Taladro","Elec","Disponible",0,0,true);
         given(toolRepository.findById(3L)).willReturn(Optional.of(tNoStock));
         assertThrows(IllegalArgumentException.class,
@@ -215,10 +215,10 @@ class LoanServiceTest {
                         List.of(oneItem(4L))));
     }
 
-    // ---------- returnLoan: éxito ----------
+    // returnLoan: success
     @Test
     void returnLoan_ok_mixedStates_andFines() {
-        // Loan con 3 items: irreparable (id=1, rep=1000), dañada (id=2, rep=5000), normal (id=3)
+        // Loan with 3 items: irreparable (id=1, rep=1000), dañada (id=2, rep=5000), normal (id=3)
         LoanEntity loan = new LoanEntity();
         loan.setId(77L);
         loan.setRutUser("11.111.111-1");
@@ -236,35 +236,35 @@ class LoanServiceTest {
 
         given(loanRepository.findById(77L)).willReturn(Optional.of(loan));
         given(loanRepository.save(org.mockito.ArgumentMatchers.any(LoanEntity.class))).willAnswer(inv -> inv.getArgument(0));
-        // cliente para decrementar amountOfLoans
+        // client to decrement amountOfLoans
         UserEntity customer = new UserEntity(); customer.setRut("11.111.111-1"); customer.setAmountOfLoans(2);
         given(userRepository.findByRut("11.111.111-1")).willReturn(customer);
 
-        Map<Long,Integer> repairCosts = Map.of(2L, 300, 99L, 9999); // 99 ignora
+        Map<Long,Integer> repairCosts = Map.of(2L, 300, 99L, 9999); // 99 ignore
         LoanEntity out = loanService.returnLoan(
                 77L,
-                LocalDate.of(2025,10,7),            // 2 días tarde
+                LocalDate.of(2025,10,7),            // 2 days late
                 Set.of(2L),                          // dañada
                 Set.of(1L),                          // irreparable
-                500,                                 // multa diaria
+                500,                                 // late fine
                 repairCosts
         );
 
         assertEquals(LocalDate.of(2025,10,7), out.getLateReturnDate());
-        assertEquals(1000 + 300, out.getDamagePenalty());   // repuesto + reparación
-        assertEquals(2 * 500, out.getLateFine());           // 2 días * 500
+        assertEquals(1000 + 300, out.getDamagePenalty());
+        assertEquals(2 * 500, out.getLateFine());           // 2 days * 500
 
-        // estados actualizados
+        // updated status
         verify(toolService).updateTool(eq(1L), eq("Dada de baja"), isNull(), isNull(), org.mockito.ArgumentMatchers.any(UserEntity.class));
         verify(toolService).updateTool(eq(2L), eq("En reparación"), isNull(), isNull(), org.mockito.ArgumentMatchers.any(UserEntity.class));
         verify(toolService).updateTool(eq(3L), eq("Disponible"), isNull(), isNull(), org.mockito.ArgumentMatchers.any(UserEntity.class));
 
-        // decremento de amountOfLoans y recompute
+        // decrement of amountOfLoans and recompute
         verify(userRepository).save(argThat(u -> u.getAmountOfLoans() == 1));
         verify(userService).recomputeActiveStatus("11.111.111-1");
     }
 
-    // ---------- returnLoan: validaciones ----------
+    //returnLoan: validations
     @Test
     void returnLoan_fails_onNullActualDate() {
         assertThrows(IllegalArgumentException.class,
@@ -310,7 +310,7 @@ class LoanServiceTest {
                 () -> loanService.returnLoan(9L, LocalDate.now(), Set.of(), Set.of(999L), null, null));
     }
 
-    // ---------- payFines ----------
+    //payFines
     @Test
     void payFines_setsFlags_andRecomputes() {
         LoanEntity l = new LoanEntity();
@@ -326,7 +326,7 @@ class LoanServiceTest {
         verify(userService).recomputeActiveStatus("11.111.111-1");
     }
 
-    // ---------- listados auxiliares ----------
+    //helpers
     @Test
     void listActiveLoans_ok() {
         given(loanRepository.findByRutUserAndLateReturnDateIsNull("11")).willReturn(List.of());
@@ -346,7 +346,7 @@ class LoanServiceTest {
         given(loanRepository.findLoansWithUnpaidDebts(any(), anyBoolean(), any(), anyBoolean(), any(), any()))
                 .willReturn(pg);
 
-        // rut "" -> null; sin fechas
+        // rut "" -> null;no dates
         Page<LoanEntity> out = loanService.listLoansWithUnpaidDebts("", null, null, pr);
         assertSame(pg, out);
 
@@ -372,7 +372,7 @@ class LoanServiceTest {
         assertSame(pg1, loanService.listOverdueLoans(" ", pr)); // blank -> rama sin rut
     }
 
-    // ───────────── helpers ─────────────
+
 
     private static LoanService.Item oneItem(Long toolId) {
         LoanService.Item i = new LoanService.Item();

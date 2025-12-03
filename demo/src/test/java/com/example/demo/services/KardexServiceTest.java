@@ -53,7 +53,7 @@ class KardexServiceTest {
         // then: retorna lo que entrega el repo
         assertSame(expected, out);
 
-        // capturamos y verificamos mapeo/normalización
+        // capture and verify mapping/normalization
         ArgumentCaptor<Long> aToolId = ArgumentCaptor.forClass(Long.class);
         ArgumentCaptor<String> aRut = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> aTypeLower = ArgumentCaptor.forClass(String.class);
@@ -80,14 +80,14 @@ class KardexServiceTest {
         assertEquals(start, aStart.getValue());
         assertTrue(aHasTo.getValue());
         assertEquals(end, aEnd.getValue());
-        assertEquals("%taladro%", aNamePat.getValue());        // patrón con %
+        assertEquals("%taladro%", aNamePat.getValue());        // pattern with %
         assertEquals("%eléctricas%", aCatPat.getValue());
         assertEquals(pr, aPageable.getValue());
     }
 
     @Test
     void search_mapsParams_nullsAndBlanks() {
-        // given: tipo/name/category en blanco o null; sin fechas
+        // given: blank or null type/name/category; no dates
         Pageable pr = PageRequest.of(1, 10);
         Page<KardexEntity> expected = new PageImpl<>(List.of(), pr, 0);
 
@@ -99,15 +99,15 @@ class KardexServiceTest {
 
         // when
         Page<KardexEntity> out = kardexService.search(
-                null, null, "   ",   // type en blanco -> ""
-                null, null,          // sin rango -> hasFrom/hasTo = false
-                "", null,            // name "" -> "", category null -> ""
+                null, null, "   ",
+                null, null,
+                "", null,
                 pr
         );
 
         assertSame(expected, out);
 
-        // verify normalización
+        // verify normalization
         ArgumentCaptor<String> aTypeLower = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Boolean> aHasFrom = ArgumentCaptor.forClass(Boolean.class);
         ArgumentCaptor<Boolean> aHasTo = ArgumentCaptor.forClass(Boolean.class);
@@ -122,10 +122,10 @@ class KardexServiceTest {
                 any()
         );
 
-        assertEquals("", aTypeLower.getValue()); // blanco -> ""
-        assertFalse(aHasFrom.getValue());        // sin start
-        assertFalse(aHasTo.getValue());          // sin end
-        assertEquals("", aNamePat.getValue());   // "" -> ""
-        assertEquals("", aCatPat.getValue());    // null -> ""
+        assertEquals("", aTypeLower.getValue());
+        assertFalse(aHasFrom.getValue());
+        assertFalse(aHasTo.getValue());
+        assertEquals("", aNamePat.getValue());
+        assertEquals("", aCatPat.getValue());
     }
 }

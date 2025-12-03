@@ -24,7 +24,7 @@ public class UserEntity {
     @Column(unique = true, nullable = false)
     private Long id;
 
-    /** sub de Keycloak (UUID del usuario en el IdP) */
+
     @Column(name = "keycloak_id", nullable = false, length = 64)
     private String keycloakId;
 
@@ -33,7 +33,7 @@ public class UserEntity {
     @Column(nullable = false)
     private String email;
 
-    /** Ya no usamos password local (ver Security) */
+    //No local password
     @Transient
     private String password;
     @Column(name = "rut", unique = true)

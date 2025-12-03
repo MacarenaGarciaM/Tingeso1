@@ -16,6 +16,7 @@ public class AuthController {
 
     private final UserService userService;
 
+    //returns the authenticated user based on the JWT token provided in the Authorization header.
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UserEntity> me(@AuthenticationPrincipal Jwt jwt) {
