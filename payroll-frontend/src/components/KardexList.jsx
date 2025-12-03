@@ -1,4 +1,3 @@
-// src/components/KardexList.jsx
 import { useEffect, useState } from "react";
 import {
   Box, Paper, Stack, TextField, Button, Typography, Table, TableHead, TableRow,

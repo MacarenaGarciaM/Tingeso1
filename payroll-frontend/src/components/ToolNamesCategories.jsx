@@ -26,21 +26,19 @@ export default function ToolNamesCategories() {
   // pestaña: 0 = Disponibles, 1 = En reparación
   const [tab, setTab] = useState(0);
 
-  // buckets crudos
-  const [available, setAvailable] = useState([]);   // ToolEntity[] (state=Disponible)
-  const [repairing, setRepairing] = useState([]);   // ToolEntity[] (state=En reparación)
+  const [available, setAvailable] = useState([]);   // ToolEntity[] (Disponible)
+  const [repairing, setRepairing] = useState([]);   // ToolEntity[] (En reparación)
 
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
 
-  // edición de valor de reposición (en “Disponible”)
+  // edición de valor de reposición
   const [editingId, setEditingId] = useState(null);
   const [newRepoValue, setNewRepoValue] = useState("");
 
-  // confirmación de baja (desde Disponible)
+  // confirmación de baja
   const [confirmId, setConfirmId] = useState(null);
 
-  // toast
   const [toast, setToast] = useState({ open: false, msg: "", sev: "success" });
 
   const loadAll = async () => {
@@ -59,7 +57,7 @@ export default function ToolNamesCategories() {
         const rep = await getToolsByState("En reparación");
         setRepairing((rep || []).filter(t => (t.initialState || "").toLowerCase() === "en reparación"));
       } else {
-        setRepairing([]); // no intentes cargar, evita el 403
+        setRepairing([]); 
       }
     } catch (e) {
       setErr(e?.response?.data || e.message);
@@ -71,7 +69,7 @@ export default function ToolNamesCategories() {
 
   useEffect(() => { loadAll(); }, []);
 
-  // Agrupa por name+category (para mostrar una fila consolidada y usar el id de un bucket representativo)
+  // Agrupa por name+category
   const group = (rows) => {
     const map = new Map();
     for (const t of rows) {
@@ -79,7 +77,7 @@ export default function ToolNamesCategories() {
       const item = map.get(key) || { name: t.name, category: t.category, id: t.id, amount: 0, repositionValue: t.repositionValue };
       item.amount += t.amount ?? 0;
       item.repositionValue = t.repositionValue;
-      item.id = t.id; // id de uno de los buckets en ese estado (para operar)
+      item.id = t.id; 
       map.set(key, item);
     }
     return [...map.values()];
@@ -88,7 +86,7 @@ export default function ToolNamesCategories() {
   const availableGrouped = useMemo(() => group(available), [available]);
   const repairingGrouped = useMemo(() => group(repairing), [repairing]);
 
-  // ----- Edición reposición (Disponible) -----
+  // Edición reposición
   const startEdit = (row) => {
     setEditingId(row.id);
     setNewRepoValue(String(row.repositionValue ?? ""));
@@ -110,7 +108,7 @@ export default function ToolNamesCategories() {
     }
   };
 
-  // ----- Baja 1 unidad (Disponible -> Dada de baja) -----
+  //Baja 1 unidad (Disponible -> Dada de baja)
   const decommissionOne = async (row) => {
     try {
       await adminUpdateTool({ id: row.id, state: "Dada de baja", rutUser: me?.rut });
@@ -124,7 +122,7 @@ export default function ToolNamesCategories() {
     }
   };
 
-  // ----- Reparada: mover 1 unidad de “En reparación” -> “Disponible” -----
+  //Reparada: mover 1 unidad de “En reparación” -> “Disponible” 
   const markRepairedOne = async (row) => {
     try {
       await adminUpdateTool({ id: row.id, state: "Disponible", rutUser: me?.rut });
@@ -157,7 +155,7 @@ export default function ToolNamesCategories() {
         {isAdmin && <Tab label="En reparación" />}
       </Tabs>
 
-      {/* TAB: Disponibles */}
+      {/* Disponibles */}
       {tab === 0 && (
         <Paper>
           <Table>
@@ -225,7 +223,7 @@ export default function ToolNamesCategories() {
         </Paper>
       )}
 
-      {/* TAB: En reparación */}
+      {/* En reparación */}
       {isAdmin && tab === 1 && (
         <Paper>
           <Table>

@@ -15,8 +15,8 @@ export default function OverdueLoans() {
   const isAdmin = roles.map(r => String(r).toUpperCase()).includes("ADMIN");
 
   const [me, setMe] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(true); // indica si está cargando datos del backend
+  const [err, setErr] = useState(""); //guarda errores para mostrar en un Alert
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(12);
   const [data, setData] = useState({ content: [], totalElements: 0 });
@@ -24,6 +24,7 @@ export default function OverdueLoans() {
   // filtro por rut (admin puede ver todos; user solo el suyo)
   const [rutFilter, setRutFilter] = useState("");
 
+  // carga datos cuando cambia filtro, página o tamaño
   useEffect(() => {
     (async () => {
       try {

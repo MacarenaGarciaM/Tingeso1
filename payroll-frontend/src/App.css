@@ -1,33 +1,33 @@
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  max-width: 1280px; /* limita el ancho máximo del contenido */
+  margin: 0 auto;  /* centra el contenido horizontalmente */
+  padding: 2rem; /* agrega espacio alrededor del contenido */
+  text-align: center; /* centra el texto */
 }
 
 .logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
+  height: 6em; /* altura del logo */
+  padding: 1.5em; /* espacio alrededor del logo */
+  will-change: filter; /* indica que la propiedad filter cambiará */
+  transition: filter 300ms; /* transición suave para el filtro */
 }
 .logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
+  filter: drop-shadow(0 0 2em #646cffaa); /* sombra al pasar el cursor */
 }
 .logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+  filter: drop-shadow(0 0 2em #61dafbaa); /* sombra específica para el logo de React */
 }
 
-@keyframes logo-spin {
+@keyframes logo-spin { /* animación de rotación del logo */
   from {
-    transform: rotate(0deg);
+    transform: rotate(0deg); /* inicio de la rotación */
   }
   to {
-    transform: rotate(360deg);
+    transform: rotate(360deg); /* fin de la rotación */
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
+@media (prefers-reduced-motion: no-preference) { /* si el usuario no prefiere reducir el movimiento */
   a:nth-of-type(2) .logo {
     animation: logo-spin infinite 20s linear;
   }
@@ -38,5 +38,5 @@
 }
 
 .read-the-docs {
-  color: #888;
+  color: #ffffff;
 }

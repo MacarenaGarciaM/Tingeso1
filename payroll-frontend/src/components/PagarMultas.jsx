@@ -26,8 +26,10 @@ export default function PagarMultas() {
   // selección de pagos por fila
   const [payloads, setPayloads] = useState({}); // { [loanId]: { payLateFine: bool, payDamagePenalty: bool } }
 
+  //maneja el snackbar de toast
   const [toast, setToast] = useState({ open:false, msg:"", sev:"success" });
 
+  // carga datos cuando cambia filtro, página o tamaño
   const load = async (p = page) => {
     try {
       setLoading(true);
@@ -55,6 +57,7 @@ export default function PagarMultas() {
 
   useEffect(() => { load(0); /* init */ }, [size]); // al cambiar tamaño, recarga
 
+  //busca con los filtros actuales
   const onSearch = (e) => { e.preventDefault(); load(0); };
 
   const toggle = (loanId, key) => {

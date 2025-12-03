@@ -8,19 +8,20 @@ import { getTopTools } from "../services/loan.service";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
 export default function TopTools() {
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(10); //maximo de herramientas
   const [start, setStart] = useState(""); // YYYY-MM-DD
-  const [end, setEnd]     = useState("");
-  const [rows, setRows]   = useState([]);
+  const [end, setEnd]     = useState(""); //rango inicio de fecha
+  const [rows, setRows]   = useState([]); //rango fin fecha
   const [err, setErr]     = useState("");
   const [loading, setLoading] = useState(false);
 
+  // carga datos desde el backend
   const load = async () => {
     try {
       setLoading(true);
       setErr("");
       const data = await getTopTools({
-        limit: Number(limit) || 10,
+        limit: Number(limit) || 10, 
         start: start || undefined,
         end:   end   || undefined
       });
@@ -34,7 +35,7 @@ export default function TopTools() {
 
   useEffect(() => { load(); /* carga inicial */ }, []);
 
-  const onSubmit = (e) => { e.preventDefault(); load(); };
+  const onSubmit = (e) => { e.preventDefault(); load(); }; //evita que se recarge la pagina y vuelve a llamar a load con los filtros
 
   return (
     <Box sx={{ p:3, maxWidth: 1000, mx:"auto" }}>

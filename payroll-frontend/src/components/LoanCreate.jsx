@@ -1,4 +1,3 @@
-// src/components/LoanCreate.jsx
 import { useEffect, useState } from "react";
 import {
   Box, Paper, Stack, TextField, Button, Typography, Alert, CircularProgress,
@@ -10,9 +9,11 @@ import { getMe } from "../services/auth.service";
 import { getAvailableTools } from "../services/tool.service";
 import { createLoan } from "../services/loan.service";
 
-const todayISO = () => new Date().toISOString().slice(0, 10);
+const todayISO = () => new Date().toISOString().slice(0, 10); //fecha actual en formato YYYY-MM-DD
 const DAILY_RENT_PRICE = 2500;
 
+
+//calcula la diferencia en días entre dos fechas (YYYY-MM-DD), mínimo 1 día
 const diffDaysMin1 = (start, end) => {
   const s = new Date(start + "T00:00:00");
   const e = new Date(end + "T00:00:00");
@@ -31,17 +32,19 @@ const CLP = new Intl.NumberFormat("es-CL", {
 export default function LoanCreate() {
   const navigate = useNavigate();
   const [me, setMe] = useState(null);
-  const [options, setOptions] = useState([]);   // ToolEntity[]
-  const [selected, setSelected] = useState([]); // ToolEntity[]
+  const [options, setOptions] = useState([]);   // ToolEntity[] disponibles
+  const [selected, setSelected] = useState([]); // ToolEntity[] seleccionadas
   const [reservationDate, setReservationDate] = useState(todayISO());
   const [returnDate, setReturnDate] = useState(todayISO());
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
-  const [toastOpen, setToastOpen] = useState(false);
+  const [toastOpen, setToastOpen] = useState(false); //controla Snackbar de confirmación está abierto.
   const [receipt, setReceipt] = useState(null);
   const [restricted, setRestricted] = useState(false);
   const [warnOpen, setWarnOpen] = useState(false);
 
+
+  //Carga inicial de datos: usuario y herramientas disponibles
   useEffect(() => {
     const load = async () => {
       try {
@@ -67,6 +70,8 @@ export default function LoanCreate() {
     load();
   }, []);
 
+
+  // Maneja el envío del formulario de creación de préstamo
   const onSubmit = async (e) => {
     e.preventDefault();
     setErr("");
@@ -244,7 +249,7 @@ export default function LoanCreate() {
       </Box>
     )}
 
-    {/* --- Botón OK --- */}
+    {/* Botón OK */}
     <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
       <Button onClick={handleOkay} variant="contained" size="small">
         OK

@@ -33,6 +33,8 @@ function StatusChips({ loan }) {
   );
 }
 
+//<Chip label="Activo"  color="success" size="small"  sx={{ bgcolor: "green.100", color: "green.800" }} />
+
 export default function AllLoans() {
   const [me, setMe] = useState(null);
   const [page, setPage] = useState(0);
@@ -84,7 +86,7 @@ export default function AllLoans() {
       <Typography variant="h5" sx={{ mb:2 }}>Mis préstamos</Typography>
       {err && <Alert severity="error" sx={{ mb:2 }}>{String(err)}</Alert>}
 
-      <Paper sx={{ p:2, mb:2 }}>
+      <Paper sx={{ p:2, mb:2 /*bgcolor: "#f5f5f5"*/}}>
         <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center">
           <Typography variant="body2" sx={{ mr:1 }}>Filtrar:</Typography>
           <Chip label="Todos"      onClick={()=>setFilter("all")}      color={filter==="all"?"primary":"default"} />
@@ -93,7 +95,7 @@ export default function AllLoans() {
           <Chip label="Atrasados"  onClick={()=>setFilter("overdue")}  color={filter==="overdue"?"primary":"default"} />
           <Chip label="Con deuda"  onClick={()=>setFilter("debt")}     color={filter==="debt"?"primary":"default"} />
           <Box sx={{ flex:1 }} />
-          <Button size="small" onClick={()=>load(page)} disabled={loading}>
+          <Button size="small"  onClick={()=>load(page)} disabled={loading}>
             {loading ? <CircularProgress size={16} /> : "Actualizar"}
           </Button>
         </Stack>

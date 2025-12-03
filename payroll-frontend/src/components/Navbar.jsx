@@ -34,15 +34,17 @@ export default function Navbar() {
             size="large"
             edge="start"
             aria-label="menu"
-            sx={{ mr: 2, color: "#ffffffff" }}
+            sx={{ mr: 2, color: "#ffffffff" }} // White color for the menu icon
             onClick={toggleDrawer(true)}
           >
             <MenuIcon />
           </IconButton>
 
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            ToolRent: Sistema de arriendo de herramientas
-          </Typography>
+
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}> 
+            ToolRent: Sistema de arriendo de herramientas  
+          </Typography> 
+
 
           {!initialized ? null : keycloak.authenticated ? (
             <>

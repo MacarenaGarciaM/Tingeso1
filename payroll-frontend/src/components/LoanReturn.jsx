@@ -14,10 +14,10 @@ export default function LoanReturn() {
   const isAdmin = rolesRaw.map(r => String(r).toUpperCase()).includes("ADMIN"); // 👈
 
   const [me, setMe] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // indica si está cargando datos
   const [err, setErr] = useState("");
-  const [loans, setLoans] = useState([]);
-  const [loanId, setLoanId] = useState("");
+  const [loans, setLoans] = useState([]); // préstamos activos
+  const [loanId, setLoanId] = useState("");  // préstamo seleccionado
   const [actualReturnDate, setActualReturnDate] = useState(todayISO());
   const [finePerDay, setFinePerDay] = useState(0);
   const [selectedUser, setSelectedUser] = useState(""); // "" = todos (admin)
@@ -26,7 +26,7 @@ export default function LoanReturn() {
   const [repairCosts, setRepairCosts] = useState({}); 
   const [submitting, setSubmitting] = useState(false);
 
-  const [toastOk, setToastOk] = useState(false);
+  const [toastOk, setToastOk] = useState(false); 
   const [toastMsg, setToastMsg] = useState("");
 
   // carga inicial + cada vez que cambia el filtro admin
@@ -70,7 +70,7 @@ export default function LoanReturn() {
     return () => { alive = false; };
   }, [isAdmin, selectedUser]);
 
-  const currentLoan = useMemo(() => loans.find(l => String(l.id) === String(loanId)) || null, [loans, loanId]);
+  const currentLoan = useMemo(() => loans.find(l => String(l.id) === String(loanId)) || null, [loans, loanId]); //encontrar préstamo actual y memoizar
 
   useEffect(() => {
     if (!currentLoan) return;
@@ -84,14 +84,14 @@ export default function LoanReturn() {
     setRepairCosts(initialCosts);
   }, [currentLoan]);
 
-  const onToggle = (toolId, value) => {
+  const onToggle = (toolId, value) => { // "ok" | "damaged" | "irreparable"
     setStates(prev => ({ ...prev, [toolId]: value }));
     if (value !== "damaged") {
       setRepairCosts(prev => ({ ...prev, [toolId]: 0 }));
     }
   };
 
-  const onChangeRepair = (toolId, value) => {
+  const onChangeRepair = (toolId, value) => { // actualiza costo reparación
     const n = Math.max(0, parseInt(value || "0", 10) || 0);
     setRepairCosts(prev => ({ ...prev, [toolId]: n }));
   };
@@ -108,13 +108,13 @@ export default function LoanReturn() {
     setStates({});
   };
 
-const onSubmit = async (e) => {
+const onSubmit = async (e) => { // maneja el envío del formulario
   e.preventDefault();
   if (submitting) return;
   setSubmitting(true);
   setErr("");
 
-  // ✅ definir fuera del try para tener acceso en catch
+  // definir fuera del try para tener acceso en catch
   let damaged = [];
   let irreparable = [];
   let damagedCosts = {};
@@ -142,7 +142,7 @@ const onSubmit = async (e) => {
 
 
 
-    const payload = {
+    const payload = { //arma el payload para el backend
       actualReturnDate,
       finePerDay: Number(finePerDay) || 0,
       damaged,
